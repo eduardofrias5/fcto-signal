@@ -1,0 +1,2120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚡ FCTO Signal</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="/client/quick.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --green:#008060;--green-light:#ecfdf5;--green-mid:#34d399;
+  --indigo:#6366f1;--indigo-light:#eef2ff;--indigo-mid:#818cf8;
+  --amber:#d97706;--amber-light:#fffbeb;--amber-border:#fde68a;
+  --orange:#ea580c;--orange-light:#fff7ed;--orange-border:#fed7aa;
+  --red:#dc2626;--red-light:#fef2f2;--red-border:#fecaca;
+  --s50:#f8fafc;--s100:#f1f5f9;--s200:#e2e8f0;--s400:#94a3b8;--s500:#64748b;--s700:#334155;--s900:#0f172a;
+  --text:var(--s900);--text-muted:var(--s500);
+  --bg:var(--s50);--card:#fff;--border:var(--s200);
+  --radius:16px;--radius-sm:10px;
+  --shadow:0 1px 2px rgba(15,23,42,.04),0 4px 16px rgba(15,23,42,.05);
+  --shadow-lg:0 8px 24px rgba(15,23,42,.1),0 2px 8px rgba(15,23,42,.06);
+  --accent:var(--green);--accent-light:var(--green-light);--accent-mid:var(--green-mid);
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5}
+body.fcto-mode{--accent:var(--indigo);--accent-light:var(--indigo-light);--accent-mid:var(--indigo-mid)}
+
+/* HEADER */
+#app-header{
+  position:sticky;top:0;z-index:100;
+  background:rgba(255,255,255,.85);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);padding:0 28px;height:60px;
+  display:flex;align-items:center;gap:12px
+}
+.header-title{font-size:15px;font-weight:700;letter-spacing:-.02em;color:var(--text)}
+.version-badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px;background:var(--s100);color:var(--s500);letter-spacing:.02em}
+.header-spacer{flex:1}
+.header-btn{font-size:13px;font-weight:600;padding:7px 16px;border-radius:var(--radius-sm);border:1px solid var(--border);background:#fff;cursor:pointer;color:var(--text);transition:all .15s}
+.header-btn:hover{background:var(--s100)}
+.header-btn.primary{background:var(--accent);color:#fff;border-color:transparent}
+.header-btn.primary:hover{opacity:.88}
+.mode-indicator{font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;background:var(--accent-light);color:var(--accent);letter-spacing:.04em;text-transform:uppercase}
+
+/* LAYOUT */
+.page{display:none;max-width:740px;margin:0 auto;padding:40px 20px 100px}
+.page.active{display:block}
+
+/* MODE SELECT */
+#mode-select-page{max-width:640px;margin:0 auto;padding:96px 20px 80px}
+.mode-select-eyebrow{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);text-align:center;margin-bottom:14px}
+.mode-select-title{font-size:36px;font-weight:900;text-align:center;margin-bottom:12px;letter-spacing:-.03em;color:var(--text);line-height:1.1}
+.mode-select-subtitle{text-align:center;color:var(--text-muted);margin-bottom:52px;font-size:15px;line-height:1.65;max-width:400px;margin-left:auto;margin-right:auto}
+.mode-cards{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:480px){.mode-cards{grid-template-columns:1fr}}
+.mode-card{
+  border:1.5px solid var(--border);border-radius:var(--radius);padding:32px 28px;
+  cursor:pointer;transition:all .22s ease;background:var(--card);position:relative;overflow:hidden
+}
+.mode-card::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
+  background:var(--accent);transform:scaleX(0);transition:transform .22s ease;transform-origin:left
+}
+.mode-card:hover{border-color:var(--accent);box-shadow:var(--shadow-lg);transform:translateY(-2px)}
+.mode-card:hover::after{transform:scaleX(1)}
+.mode-card.ae:hover{--accent:var(--green);--accent-light:var(--green-light)}
+.mode-card.fcto-card:hover{--accent:var(--indigo);--accent-light:var(--indigo-light)}
+.mode-card-icon{font-size:32px;margin-bottom:16px;display:block}
+.mode-card-title{font-size:18px;font-weight:800;margin-bottom:8px;letter-spacing:-.02em;color:var(--text);transition:color .22s}
+.mode-card-desc{font-size:13px;color:var(--text-muted);line-height:1.6}
+.mode-card:hover .mode-card-title{color:var(--accent)}
+
+/* PROGRESS */
+.progress-bar{display:flex;gap:4px;margin-bottom:10px}
+.progress-step{flex:1;height:3px;background:var(--border);border-radius:99px;overflow:hidden;transition:background .3s}
+.progress-step.done{background:var(--accent)}
+.progress-step.active{background:var(--accent);opacity:.4}
+.step-label{font-size:12px;color:var(--text-muted);margin-bottom:24px;font-weight:600;letter-spacing:.01em}
+
+/* CARDS */
+.card{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow);padding:28px;margin-bottom:16px}
+.card-title{font-size:20px;font-weight:800;margin-bottom:4px;letter-spacing:-.02em}
+.card-subtitle{font-size:13px;color:var(--text-muted);margin-bottom:24px;line-height:1.5}
+
+/* SF STEP */
+.sf-url-wrap{display:flex;gap:8px;margin-bottom:12px}
+.sf-url-wrap input{flex:1;padding:11px 16px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:inherit;font-size:14px;color:var(--text);outline:none;transition:all .15s;background:#fff}
+.sf-url-wrap input:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 10%,transparent)}
+.sf-load-btn{font-size:14px;font-weight:600;padding:11px 22px;border-radius:var(--radius-sm);border:none;background:var(--accent);color:#fff;cursor:pointer;white-space:nowrap;transition:opacity .15s;font-family:inherit}
+.sf-load-btn:hover{opacity:.85}
+.sf-load-btn:disabled{opacity:.4;cursor:not-allowed}
+.sf-hint{font-size:12px;color:var(--text-muted);line-height:1.6}
+.sf-hint code{background:var(--s100);padding:1px 5px;border-radius:4px;font-size:11px;font-family:monospace}
+
+/* SF RESULT */
+.sf-result{border:1.5px solid #6ee7b7;border-radius:var(--radius);padding:20px;background:#f0fdf9;margin-top:16px}
+.sf-result-header{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.sf-result-icon{font-size:20px}
+.sf-result-title{font-size:15px;font-weight:700;color:#047857}
+.sf-result-subtitle{font-size:12px;color:#059669}
+.sf-fields-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+@media(max-width:480px){.sf-fields-grid{grid-template-columns:1fr}}
+.sf-field-item{background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #a7f3d0}
+.sf-field-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#059669;margin-bottom:3px}
+.sf-field-value{font-size:13px;font-weight:600;color:var(--text)}
+.sf-context-section{background:#fff;border-radius:8px;padding:12px;border:1px solid #a7f3d0;margin-top:8px}
+.sf-context-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#059669;margin-bottom:6px}
+.sf-context-text{font-size:12px;color:var(--text-muted);line-height:1.6;max-height:120px;overflow-y:auto;white-space:pre-wrap}
+.sf-raw-panel{margin-top:8px;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.sf-raw-toggle{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);padding:8px 12px;cursor:pointer;list-style:none;background:var(--s100)}
+.sf-raw-toggle::-webkit-details-marker{display:none}
+.sf-raw-content{padding:10px 12px;background:#fff;font-size:11px;line-height:1.8;max-height:200px;overflow-y:auto}
+.sf-raw-content code{background:var(--s100);padding:1px 4px;border-radius:3px;font-family:monospace;font-size:10px}
+.sf-raw-section{margin-bottom:8px}
+.sf-error{border:1.5px solid var(--red-border);border-radius:var(--radius);padding:16px;background:var(--red-light);margin-top:16px;font-size:13px;color:var(--red)}
+.sf-badge{font-size:10px;font-weight:700;background:#059669;color:#fff;padding:1px 6px;border-radius:4px;margin-left:6px;vertical-align:middle;letter-spacing:.02em}
+
+/* FORM */
+.field{margin-bottom:24px}
+.field-label{font-size:14px;font-weight:600;margin-bottom:10px;display:block;letter-spacing:-.01em}
+.field-label .required{color:var(--red);margin-left:2px}
+.field.error .field-label{color:var(--red)}
+.field.error .option-card,.field.error input,.field.error textarea{border-color:var(--red)!important}
+input[type=text],textarea,select{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:inherit;font-size:14px;color:var(--text);outline:none;transition:all .15s;background:#fff}
+input[type=text]:focus,textarea:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 10%,transparent)}
+textarea{min-height:120px;resize:vertical}
+.options-grid{display:grid;gap:8px}
+.options-grid.cols-2{grid-template-columns:1fr 1fr}
+.options-grid.cols-3{grid-template-columns:1fr 1fr 1fr}
+@media(max-width:480px){.options-grid.cols-2,.options-grid.cols-3{grid-template-columns:1fr}}
+.option-card{border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:500;background:#fff;user-select:none;color:var(--s700)}
+.option-card:hover{border-color:var(--accent);background:var(--accent-light)}
+.option-card.selected{border-color:var(--accent);background:var(--accent-light);color:var(--accent);font-weight:600}
+.option-indicator{width:16px;height:16px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;transition:all .15s}
+.option-card.selected .option-indicator{border-color:var(--accent);background:var(--accent)}
+.option-indicator.checkbox{border-radius:4px}
+.option-card.selected .option-indicator.checkbox{background:var(--accent);border-color:var(--accent)}
+.option-card.selected .option-indicator.checkbox::after{content:'✓';display:block;font-size:10px;color:#fff;text-align:center;line-height:12px}
+.option-text{flex:1}
+/* Pill layout — used when options > 4 */
+.options-grid.pills{display:flex;flex-wrap:wrap;gap:7px}
+.options-grid.pills .option-card{border-radius:99px;padding:7px 16px;gap:7px;font-size:13px}
+.options-grid.pills .option-indicator{width:8px;height:8px;border-width:1.5px;flex-shrink:0}
+.options-grid.pills .option-indicator.checkbox{border-radius:3px}
+.options-grid.pills .option-card.selected .option-indicator.checkbox::after{font-size:7px;line-height:8px}
+
+/* NAVIGATION */
+.nav-row{display:flex;justify-content:space-between;align-items:center;margin-top:28px}
+.btn{font-size:14px;font-weight:600;padding:10px 24px;border-radius:var(--radius-sm);border:none;cursor:pointer;transition:all .15s;font-family:inherit;letter-spacing:-.01em}
+.btn-secondary{background:var(--s100);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover{background:var(--s200)}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{opacity:.88}
+.btn-ghost{background:none;color:var(--text-muted);border:none;font-size:13px;cursor:pointer;padding:10px 16px;font-family:inherit;font-weight:500}
+.btn-ghost:hover{color:var(--text)}
+
+/* RESULTS — SCORE HERO */
+.score-hero{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center;margin-top:8px}
+@media(max-width:560px){.score-hero{grid-template-columns:1fr;text-align:center}}
+.score-left{display:flex;flex-direction:column;align-items:flex-start;padding:8px 0}
+@media(max-width:560px){.score-left{align-items:center}}
+.score-number-big{font-size:80px;font-weight:900;letter-spacing:-.05em;line-height:1}
+.score-denom{font-size:13px;font-weight:600;color:var(--text-muted);margin-top:2px;letter-spacing:.01em}
+.score-tier-pill{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:99px;font-size:12px;font-weight:700;margin-top:12px;letter-spacing:.02em;text-transform:uppercase}
+.score-tier-pill.monitor{background:var(--s100);color:var(--s500)}
+.score-tier-pill.consider{background:var(--amber-light);color:var(--amber)}
+.score-tier-pill.engage{background:var(--orange-light);color:var(--orange)}
+.score-tier-pill.prioritize{background:var(--red-light);color:var(--red)}
+.score-gauge-wrap{margin-top:20px}
+.score-right{display:flex;align-items:center;justify-content:center}
+/* hide legacy overlay */
+.score-section{text-align:center;padding:20px 0}
+.score-canvas-wrap{position:relative;display:inline-block}
+.score-overlay{display:none}
+.score-number{font-size:48px;font-weight:800;line-height:1;color:var(--text)}
+.score-label{font-size:12px;color:var(--text-muted);margin-top:2px}
+
+/* WHY FCTO CARD */
+.why-fcto-card{border-left:4px solid var(--accent);padding-left:28px}
+.why-fcto-card.monitor{border-left-color:var(--s400)}
+.why-fcto-card.consider{border-left-color:var(--amber)}
+.why-fcto-card.engage{border-left-color:var(--orange)}
+.why-fcto-card.prioritize{border-left-color:var(--red)}
+.why-fcto-eyebrow{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:8px}
+.why-fcto-text{font-size:15px;line-height:1.7;color:var(--s700)}
+.why-fcto-actions{margin-top:20px;padding-top:20px;border-top:1px solid var(--border)}
+.why-fcto-actions-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:10px}
+.why-fcto-actions ul{list-style:none;padding:0}
+.why-fcto-actions li{font-size:13px;color:var(--s700);padding:5px 0 5px 18px;position:relative;line-height:1.5}
+.why-fcto-actions li::before{content:'→';position:absolute;left:0;color:var(--accent);font-weight:700}
+
+/* LEGACY tier-banner (kept for portfolio view-row) */
+.tier-banner{border-radius:var(--radius);padding:20px 24px;margin-bottom:16px;display:flex;align-items:flex-start;gap:14px;border:1.5px solid var(--border);background:var(--card)}
+.tier-banner.monitor{border-color:var(--s200)}
+.tier-banner.consider{border-color:var(--amber-border);background:var(--amber-light)}
+.tier-banner.engage{border-color:var(--orange-border);background:var(--orange-light)}
+.tier-banner.prioritize{border-color:var(--red-border);background:var(--red-light)}
+.tier-icon{font-size:24px;flex-shrink:0}
+.tier-title{font-size:16px;font-weight:800;letter-spacing:-.01em}
+.tier-actions{margin-top:8px;list-style:none}
+.tier-actions li{font-size:13px;color:var(--text-muted);padding:3px 0 3px 16px;position:relative}
+.tier-actions li::before{content:'→';position:absolute;left:0;color:var(--accent)}
+
+/* DIMENSION BREAKDOWN */
+.dims-grid{display:grid;gap:12px}
+.dim-row{display:flex;align-items:center;gap:12px}
+.dim-name{font-size:13px;font-weight:500;width:170px;flex-shrink:0;color:var(--s700);position:relative;cursor:help}
+.dim-name::after{
+  content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:0;
+  background:var(--s900);color:#fff;font-size:12px;font-weight:400;line-height:1.55;
+  padding:9px 13px;border-radius:9px;white-space:normal;width:260px;z-index:20;
+  pointer-events:none;opacity:0;transition:opacity .15s ease;
+  box-shadow:0 6px 20px rgba(15,23,42,.18)
+}
+.dim-name::before{
+  content:'';position:absolute;bottom:calc(100% + 3px);left:14px;
+  border:5px solid transparent;border-top-color:var(--s900);
+  pointer-events:none;opacity:0;transition:opacity .15s ease
+}
+.dim-name:hover::after,.dim-name:hover::before{opacity:1}
+.dim-bar-wrap{flex:1;height:6px;background:var(--s100);border-radius:99px;overflow:hidden}
+.dim-bar{height:100%;border-radius:99px;transition:width .7s cubic-bezier(.22,1,.36,1)}
+.dim-score-cell{display:flex;align-items:center;gap:6px;width:72px;justify-content:flex-end}
+.dim-score{font-size:12px;font-weight:700;color:var(--text-muted)}
+.dim-badge{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:2px 5px;border-radius:4px}
+
+/* AI ANALYSIS */
+.ai-col{margin-bottom:16px}
+.ai-col:last-child{margin-bottom:0}
+.ai-col-title{font-size:13px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px;letter-spacing:-.01em}
+.ai-item{font-size:13px;color:var(--s700);padding:10px 14px;border-left:2px solid var(--accent);border-radius:0 8px 8px 0;background:var(--s50);line-height:1.55}
+.ai-section-divider{height:1px;background:var(--border);margin:16px 0}
+
+/* SCORE CHARTS ROW */
+.score-charts-row{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start;margin-top:20px}
+@media(max-width:560px){.score-charts-row{grid-template-columns:1fr}}
+
+/* legacy */
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:center}
+@media(max-width:540px){.charts-row{grid-template-columns:1fr}}
+
+.methodology-link{font-size:12px;color:var(--accent);cursor:pointer;text-decoration:underline;text-underline-offset:2px;font-weight:500}
+
+/* PORTFOLIO */
+.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px}
+@media(max-width:640px){.stats-row{grid-template-columns:repeat(2,1fr)}}
+.stat-card{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow);padding:16px;text-align:center}
+.stat-value{font-size:28px;font-weight:900;color:var(--accent);letter-spacing:-.03em}
+.stat-label{font-size:11px;color:var(--text-muted);margin-top:4px;font-weight:500}
+.portfolio-table{width:100%;border-collapse:collapse;background:var(--card);border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow);overflow:hidden}
+.portfolio-table th{padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);background:var(--s50);border-bottom:1px solid var(--border);cursor:pointer;white-space:nowrap;letter-spacing:.04em;text-transform:uppercase}
+.portfolio-table th:hover{background:var(--s100)}
+.portfolio-table td{padding:12px 14px;font-size:13px;border-bottom:1px solid var(--border)}
+.portfolio-table tr:last-child td{border-bottom:none}
+.portfolio-table tr:hover td{background:var(--s50);cursor:pointer}
+.score-pill{display:inline-block;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:700}
+.score-pill.monitor{background:var(--s100);color:var(--s500)}
+.score-pill.consider{background:var(--amber-light);color:var(--amber)}
+.score-pill.engage{background:var(--orange-light);color:var(--orange)}
+.score-pill.prioritize{background:var(--red-light);color:var(--red)}
+.empty-state{text-align:center;padding:60px 20px;color:var(--text-muted)}
+.empty-state .icon{font-size:40px;margin-bottom:12px}
+.empty-state h3{font-size:16px;font-weight:700;margin-bottom:6px;color:var(--text)}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);backdrop-filter:blur(4px);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card);border-radius:var(--radius);max-width:600px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:var(--shadow-lg);border:1px solid var(--border)}
+.modal-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-header h3{font-size:16px;font-weight:700;letter-spacing:-.01em}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-muted)}
+.feedback-type-btn{font-size:12px;font-weight:600;padding:7px 16px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:#fff;cursor:pointer;color:var(--text-muted);transition:all .15s;font-family:inherit}
+.feedback-type-btn.active{border-color:var(--accent);color:var(--accent);background:var(--accent-light)}
+.modal-body{padding:24px}
+.modal-body h4{font-size:14px;font-weight:700;margin-bottom:6px;margin-top:16px;letter-spacing:-.01em}
+.modal-body h4:first-child{margin-top:0}
+.modal-body p,.modal-body li{font-size:13px;color:var(--text-muted);line-height:1.6}
+.modal-body ul{padding-left:16px}
+.modal-body table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+.modal-body th{padding:6px 10px;background:var(--s50);text-align:left;font-weight:600}
+.modal-body td{padding:6px 10px;border-bottom:1px solid var(--border)}
+
+/* LOADING */
+.loading-overlay{position:fixed;inset:0;background:rgba(255,255,255,.88);backdrop-filter:blur(6px);z-index:300;display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+.loading-overlay.open{display:flex}
+.spinner{width:36px;height:36px;border:2.5px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:14px;color:var(--text-muted);font-weight:500}
+
+/* TOAST */
+#toast-container{position:fixed;bottom:24px;right:24px;z-index:400;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--s900);color:#fff;padding:12px 18px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:var(--shadow-lg);animation:toast-in .2s ease;max-width:320px}
+.toast.error{background:var(--red)}
+.toast.success{background:#059669}
+@keyframes toast-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* EXPAND ACTIONS */
+.ai-item-wrap{margin-bottom:8px}
+.ai-item-wrap .ai-item{margin-bottom:0;border-radius:6px 6px 0 6px}
+.expand-btn{font-size:11px;font-weight:700;color:var(--accent);background:none;border:none;cursor:pointer;padding:3px 0 2px;display:block;text-decoration:underline;text-underline-offset:2px;letter-spacing:.01em;font-family:inherit}
+.expand-btn:hover{opacity:.6}
+.expand-btn:disabled{opacity:.35;cursor:not-allowed}
+.action-expansion{background:var(--accent-light);border-left:2px solid var(--accent);border-radius:0 0 8px 8px;padding:14px 16px;animation:expand-in .18s ease}
+@keyframes expand-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.expansion-item{display:flex;gap:10px;margin-bottom:12px}
+.expansion-item:last-child{margin-bottom:0}
+.expansion-bullet{font-size:13px;font-weight:700;color:var(--accent);flex-shrink:0;margin-top:1px}
+.expansion-idea{font-size:13px;font-weight:700;color:var(--text);margin-bottom:3px;letter-spacing:-.01em}
+.expansion-detail{font-size:12px;color:var(--text-muted);line-height:1.55}
+
+/* ACTION REPORT */
+.report-action-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;padding:16px 0 4px}
+.btn-report{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600;padding:11px 22px;border-radius:var(--radius-sm);border:none;cursor:pointer;transition:all .15s;font-family:inherit;letter-spacing:-.01em}
+.btn-report.send-slack{background:#4a154b;color:#fff}
+.btn-report.send-slack:hover{background:#611f69}
+.btn-report:disabled{opacity:.5;cursor:not-allowed}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header id="app-header">
+  <span class="header-title">⚡ FCTO Signal</span>
+  <span class="version-badge">v2.0</span>
+  <span id="mode-indicator" class="mode-indicator" style="display:none"></span>
+  <div class="header-spacer"></div>
+  <button class="header-btn" id="header-portfolio-btn" style="display:none" data-action="show-portfolio">Portfolio</button>
+  <button class="header-btn" id="header-back-btn" style="display:none" data-action="back-to-mode-select">← Start New Assessment</button>
+  <button class="header-btn" data-action="open-feedback" style="margin-left:6px">Feedback</button>
+</header>
+
+<div id="toast-container"></div>
+
+<div class="loading-overlay" id="loading-overlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loading-text">Loading...</div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Scoring Methodology</h3>
+      <button class="modal-close" data-action="close-modal">✕</button>
+    </div>
+    <div class="modal-body">
+      <p>FCTO Signal scores deals across 8 weighted dimensions to determine whether a Field CTO should be involved.</p>
+      <table>
+        <tr><th>Dimension</th><th>Weight</th><th>What it measures</th></tr>
+        <tr><td>Executive Access</td><td>25%</td><td>Stakeholder seniority, CTO/CIO involvement, decision-maker count</td></tr>
+        <tr><td>Technical Complexity</td><td>20%</td><td>Platform complexity, integration depth, headless architecture, channel scope</td></tr>
+        <tr><td>Stakeholder Skepticism</td><td>15%</td><td>Org receptivity to vendor input</td></tr>
+        <tr><td>Migration Risk</td><td>15%</td><td>Platform risk × urgency × geographic scope</td></tr>
+        <tr><td>Deal Scale</td><td>10%</td><td>GMV tier and deal stage maturity</td></tr>
+        <tr><td>Competitive Pressure</td><td>8%</td><td>Competitive intensity and specific competitor present</td></tr>
+        <tr><td>Digital Maturity</td><td>4%</td><td>Nature of customer objections raised</td></tr>
+        <tr><td>Industry Specificity</td><td>3%</td><td>Vertical-specific complexity</td></tr>
+      </table>
+      <h4>Priority Tiers</h4>
+      <ul>
+        <li><strong>Monitor (0–30):</strong> Standard sales motion, no FCTO needed now</li>
+        <li><strong>Consider (31–55):</strong> Targeted FCTO touchpoint may accelerate deal</li>
+        <li><strong>Engage (56–75):</strong> FCTO actively participates in key conversations</li>
+        <li><strong>Prioritize (76–100):</strong> FCTO-led deal, high-leverage opportunity</li>
+      </ul>
+      <h4>"Don't know yet" handling</h4>
+      <p>Selecting "Don't know yet" scores conservatively high, reflecting likely FCTO need rather than assuming low complexity.</p>
+    </div>
+  </div>
+</div>
+
+<!-- FEEDBACK MODAL -->
+<div class="modal-overlay" id="feedback-overlay">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <h3>Send Feedback</h3>
+      <button class="modal-close" data-action="close-feedback">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:16px">
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:10px">Type</div>
+        <div style="display:flex;gap:8px">
+          <button class="feedback-type-btn active" data-action="feedback-type" data-feedback-type="feature">✨ Feature Request</button>
+          <button class="feedback-type-btn" data-action="feedback-type" data-feedback-type="bug">🐛 Bug Report</button>
+        </div>
+      </div>
+      <div style="margin-bottom:20px">
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:10px">Description</div>
+        <textarea id="feedback-text" placeholder="What should we build or fix?" style="width:100%;min-height:110px;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:inherit;font-size:13px;resize:vertical;box-sizing:border-box;outline:none;color:var(--text);background:#fff"></textarea>
+      </div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center" data-action="send-feedback">Send</button>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE: MODE SELECT -->
+<div class="page active" id="mode-select-page">
+  <div class="mode-select-eyebrow">⚡ FCTO Signal</div>
+  <div class="mode-select-title">Score Your Next<br>Enterprise Deal</div>
+  <div class="mode-select-subtitle">Determine if a Field CTO can help you win your deal — in under 5 minutes.</div>
+  <div class="mode-cards">
+    <div class="mode-card ae" data-action="start-mode" data-mode="ae">
+      <div class="mode-card-icon">📊</div>
+      <div class="mode-card-title">AE Mode</div>
+      <div class="mode-card-desc">Quick scoring wizard for Account Executives. Get an instant FCTO involvement recommendation in 4 steps.</div>
+    </div>
+    <div class="mode-card fcto-card" style="opacity:.4;cursor:not-allowed;pointer-events:none">
+      <div class="mode-card-icon">🎯</div>
+      <div class="mode-card-title">FCTO Mode</div>
+      <div class="mode-card-desc">Full assessment with Salesforce enrichment, context paste, and portfolio tracking. Restricted access.</div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE: WIZARD -->
+<div class="page" id="wizard-page">
+  <div class="progress-bar" id="progress-bar"></div>
+  <div class="step-label" id="step-label"></div>
+  <div id="step-content"></div>
+  <div class="nav-row">
+    <button class="btn btn-secondary" id="btn-back" data-action="wizard-back">Back</button>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn-ghost" id="btn-skip" data-action="wizard-skip" style="display:none">Skip →</button>
+      <button class="btn btn-primary" id="btn-next" data-action="wizard-next">Next →</button>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE: RESULTS -->
+<div class="page" id="results-page">
+  <div id="results-content"></div>
+</div>
+
+<!-- PAGE: PORTFOLIO -->
+<div class="page" id="portfolio-page">
+  <div class="card">
+    <div class="card-title">Portfolio</div>
+    <div class="card-subtitle">All saved FCTO Signal assessments</div>
+  </div>
+  <div class="stats-row" id="portfolio-stats"></div>
+  <div id="portfolio-table-wrap"></div>
+</div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let appMode = 'ae';
+let currentStep = 0; // 0 = SF step, 1+ = wizard steps
+let answers = {};
+let sfPrefilled = {};
+let sfRawData = null; // full raw data from BigQuery for AI context
+let aiResult = null;
+let savedPortfolio = [];
+let gaugeChart = null;
+let radarChart = null;
+let currentUser = null;
+let bqAuthorized = false;
+
+const FCTO_EMAIL = 'eduardo.frias@shopify.com';
+
+// ─── STEP DEFINITIONS ────────────────────────────────────────────────────────
+// Step 0 is the SF step (handled separately). WIZARD_STEPS are steps 1+.
+const WIZARD_STEPS = [
+  {
+    title: 'Opportunity Basics',
+    subtitle: 'Tell us about the account and deal.',
+    fields: [
+      { id: 'account_name', label: 'Account Name', type: 'text', required: true, placeholder: 'e.g. Acme Corp' },
+      {
+        id: 'industry', label: 'Industry', type: 'radio', required: true, cols: 3,
+        options: [
+          { value: 'apparel', label: 'Apparel / Fashion' },
+          { value: 'beauty', label: 'Beauty / Personal Care' },
+          { value: 'electronics', label: 'Consumer Electronics' },
+          { value: 'food', label: 'Food & Beverage' },
+          { value: 'home', label: 'Home & Garden' },
+          { value: 'sporting', label: 'Sporting Goods' },
+          { value: 'automotive', label: 'Automotive' },
+          { value: 'healthcare', label: 'Healthcare' },
+          { value: 'b2b_industrial', label: 'B2B / Industrial' },
+          { value: 'retail', label: 'Retail / Specialty' },
+          { value: 'other', label: 'Other' }
+        ]
+      },
+      {
+        id: 'gmv_tier', label: 'Annual GMV Tier', type: 'radio', required: true, cols: 3,
+        options: [
+          { value: 'sub1m', label: '< $1M' },
+          { value: '1m_10m', label: '$1M – $10M' },
+          { value: '10m_50m', label: '$10M – $50M' },
+          { value: '50m_250m', label: '$50M – $250M' },
+          { value: '250m_plus', label: '$250M+' }
+        ]
+      },
+      {
+        id: 'deal_stage', label: 'Deal Stage', type: 'radio', required: true, cols: 3,
+        options: [
+          { value: 'awareness', label: 'Awareness' },
+          { value: 'discovery', label: 'Discovery' },
+          { value: 'evaluation', label: 'Evaluation' },
+          { value: 'proposal', label: 'Proposal' },
+          { value: 'negotiation', label: 'Negotiation' },
+          { value: 'closed', label: 'Closed' }
+        ]
+      },
+      {
+        id: 'channels', label: 'Channels in Scope', type: 'multi', required: false, cols: 2,
+        options: [
+          { value: 'd2c', label: 'D2C (Direct-to-Consumer)' },
+          { value: 'b2b', label: 'B2B' },
+          { value: 'pos', label: 'POS / Retail' },
+          { value: 'shop_pay', label: 'Shop Pay Component' },
+          { value: 'agentic', label: 'Agentic Commerce' }
+        ]
+      },
+      {
+        id: 'geo_scope', label: 'Geographic Scope', type: 'radio', required: true, cols: 3,
+        options: [
+          { value: 'single', label: 'Single Market' },
+          { value: 'regional', label: 'Regional (2–5)' },
+          { value: 'global', label: 'Global (6+)' }
+        ]
+      }
+    ]
+  },
+  {
+    title: 'Stakeholder Landscape',
+    subtitle: 'Who are we dealing with and how receptive are they?',
+    fields: [
+      {
+        id: 'contact_level', label: 'Highest-Level Contact Engaged', type: 'radio', required: true, cols: 2,
+        options: [
+          { value: 'ic', label: 'Individual Contributor' },
+          { value: 'manager', label: 'Manager / Director' },
+          { value: 'vp', label: 'VP / SVP' },
+          { value: 'csuite', label: 'C-Suite (non-CTO)' },
+          { value: 'cto_cio', label: 'CTO / CIO' },
+          { value: 'board', label: 'Board-Level' },
+          { value: 'unknown', label: "Don't know yet" }
+        ]
+      },
+      {
+        id: 'cto_involvement', label: 'CTO / CIO Involvement Level', type: 'radio', required: true, cols: 3,
+        options: [
+          { value: 'none', label: 'Not Involved' },
+          { value: 'aware', label: 'Aware' },
+          { value: 'informed', label: 'Informed' },
+          { value: 'consulted', label: 'Consulted' },
+          { value: 'decision', label: 'Decision-Maker' }
+        ]
+      },
+      {
+        id: 'decision_count', label: 'Decision-Maker Count', type: 'radio', required: true, cols: 2,
+        options: [
+          { value: '1_2', label: '1 – 2' },
+          { value: '3_5', label: '3 – 5' },
+          { value: '6_10', label: '6 – 10' },
+          { value: '10plus', label: '10+' }
+        ]
+      },
+      {
+        id: 'org_receptivity', label: 'Org Receptivity to Vendor Input', type: 'radio', required: true, cols: 3,
+        options: [
+          { value: 'very_resistant', label: 'Very Resistant' },
+          { value: 'resistant', label: 'Somewhat Resistant' },
+          { value: 'neutral', label: 'Neutral' },
+          { value: 'open', label: 'Open' },
+          { value: 'very_open', label: 'Very Open' }
+        ]
+      }
+    ]
+  },
+  {
+    title: 'Technical Complexity',
+    subtitle: 'What are we building against?',
+    fields: [
+      {
+        id: 'platform', label: 'Current Commerce Platform', type: 'radio', required: true, cols: 2,
+        options: [
+          { value: 'shopify', label: 'Shopify (upgrade)' },
+          { value: 'custom', label: 'Custom / Proprietary' },
+          { value: 'magento', label: 'Magento / Adobe Commerce' },
+          { value: 'sfcc', label: 'Salesforce Commerce Cloud' },
+          { value: 'sap', label: 'SAP Commerce' },
+          { value: 'oracle', label: 'Oracle Commerce' },
+          { value: 'bigcommerce', label: 'BigCommerce' },
+          { value: 'woocommerce', label: 'WooCommerce' },
+          { value: 'unknown', label: "Don't know yet" }
+        ]
+      },
+      {
+        id: 'integration_complexity', label: 'Integration Complexity', type: 'radio', required: true, cols: 2,
+        options: [
+          { value: 'minimal', label: 'Minimal (1–2 integrations)' },
+          { value: 'moderate', label: 'Moderate (3–5)' },
+          { value: 'high', label: 'High (6–10)' },
+          { value: 'very_high', label: 'Very High (10+)' },
+          { value: 'unknown', label: "Don't know yet" }
+        ]
+      },
+      {
+        id: 'headless', label: 'Headless / Composable Architecture in Scope', type: 'radio', required: true, cols: 2,
+        options: [
+          { value: 'no', label: 'No' },
+          { value: 'evaluating', label: 'Evaluating' },
+          { value: 'partial', label: 'Yes – Partial' },
+          { value: 'full', label: 'Yes – Full' }
+        ]
+      },
+      {
+        id: 'urgency', label: 'Project Urgency / Timeline', type: 'radio', required: true, cols: 3,
+        options: [
+          { value: 'none', label: 'No Urgency' },
+          { value: '12plus', label: '12+ months' },
+          { value: '6_12', label: '6–12 months' },
+          { value: '3_6', label: '3–6 months' },
+          { value: 'sub3', label: '< 3 months' }
+        ]
+      }
+    ]
+  },
+  {
+    title: 'Competitive & Context',
+    subtitle: 'What are we up against?',
+    fields: [
+      {
+        id: 'competitive_situation', label: 'Competitive Situation', type: 'radio', required: true, cols: 2,
+        options: [
+          { value: 'none', label: 'No Competition' },
+          { value: 'aware', label: 'Aware of Some Competition' },
+          { value: 'active', label: 'Actively Competitive' },
+          { value: 'unknown', label: "Don't know yet" }
+        ]
+      },
+      {
+        id: 'primary_competitor', label: 'Primary Competitor', type: 'radio', required: false, cols: 2,
+        options: [
+          { value: 'sfcc', label: 'Salesforce Commerce Cloud' },
+          { value: 'magento', label: 'Adobe / Magento' },
+          { value: 'sap', label: 'SAP Commerce' },
+          { value: 'oracle', label: 'Oracle Commerce' },
+          { value: 'bigcommerce', label: 'BigCommerce' },
+          { value: 'custom', label: 'Custom Build' },
+          { value: 'do_nothing', label: 'Do Nothing' },
+          { value: 'other', label: 'Other' },
+          { value: 'unknown', label: "Don't know yet" },
+          { value: 'na', label: 'Not Applicable' }
+        ]
+      },
+      {
+        id: 'objections', label: 'Customer Objections Raised', type: 'multi', required: false, cols: 2,
+        options: [
+          { value: 'none', label: 'None yet' },
+          { value: 'tco', label: 'Total Cost of Ownership' },
+          { value: 'impl_risk', label: 'Implementation Risk' },
+          { value: 'platform_maturity', label: 'Platform Maturity' },
+          { value: 'integration', label: 'Integration Concerns' },
+          { value: 'org_change', label: 'Organizational Change' },
+          { value: 'feature_gaps', label: 'Competitive Feature Gaps' },
+          { value: 'exec_skepticism', label: 'Executive Skepticism' }
+        ]
+      }
+    ]
+  },
+  // FCTO only
+  {
+    title: 'Context Enrichment',
+    subtitle: 'Paste emails, RFP excerpts, call notes, or any additional context. The AI will factor this into its analysis.',
+    fctoOnly: true,
+    fields: [
+      { id: 'raw_context', label: 'Additional Context', type: 'textarea', required: false,
+        placeholder: 'Paste emails, call notes, RFP excerpts, Slack threads...' }
+    ]
+  }
+];
+
+function totalSteps() {
+  // Step 0 = SF step, then WIZARD_STEPS filtered for mode
+  return 1 + WIZARD_STEPS.filter(s => !s.fctoOnly || appMode === 'fcto').length;
+}
+
+function getWizardStep(stepIndex) {
+  // stepIndex 0 = SF step; 1+ = WIZARD_STEPS
+  if (stepIndex === 0) return { type: 'sf' };
+  const steps = WIZARD_STEPS.filter(s => !s.fctoOnly || appMode === 'fcto');
+  return steps[stepIndex - 1];
+}
+
+// ─── SCORING ENGINE ───────────────────────────────────────────────────────────
+function score(a) {
+  const dims = {};
+
+  const contactScore = { ic: 0, manager: 20, vp: 40, csuite: 60, cto_cio: 80, board: 100, unknown: 60 };
+  const ctoScore = { none: 0, aware: 20, informed: 40, consulted: 70, decision: 100 };
+  const decisionScore = { '1_2': 20, '3_5': 40, '6_10': 60, '10plus': 80 };
+  dims.executive_access = Math.round(
+    (contactScore[a.contact_level] || 0) * 0.4 +
+    (ctoScore[a.cto_involvement] || 0) * 0.4 +
+    (decisionScore[a.decision_count] || 0) * 0.2
+  );
+
+  const platformComplexity = { shopify: 10, woocommerce: 40, bigcommerce: 40, custom: 90, magento: 80, sfcc: 85, sap: 90, oracle: 90, unknown: 75 };
+  const integrationScore = { minimal: 10, moderate: 40, high: 70, very_high: 90, unknown: 75 };
+  const headlessScore = { no: 0, evaluating: 30, partial: 60, full: 80 };
+  const geoMult = { single: 1.0, regional: 1.1, global: 1.2 };
+  const channels = a.channels || [];
+  let channelBonus = 0;
+  if (channels.includes('agentic')) channelBonus += 15;
+  if (channels.includes('b2b')) channelBonus += 10;
+  if (channels.includes('pos')) channelBonus += 5;
+  dims.technical_complexity = Math.min(100, Math.round(
+    ((platformComplexity[a.platform] || 0) * 0.4 +
+     (integrationScore[a.integration_complexity] || 0) * 0.3 +
+     (headlessScore[a.headless] || 0) * 0.3) *
+    (geoMult[a.geo_scope] || 1.0) + channelBonus
+  ));
+
+  const skepticismScore = { very_resistant: 100, resistant: 70, neutral: 50, open: 25, very_open: 10 };
+  dims.stakeholder_skepticism = skepticismScore[a.org_receptivity] || 50;
+
+  const platformRisk = { shopify: 5, woocommerce: 40, bigcommerce: 40, custom: 95, magento: 80, sfcc: 85, sap: 95, oracle: 95, unknown: 70 };
+  const urgencyScore = { none: 10, '12plus': 20, '6_12': 50, '3_6': 75, sub3: 95 };
+  dims.migration_risk = Math.min(100, Math.round(
+    ((platformRisk[a.platform] || 0) * 0.5 +
+     (urgencyScore[a.urgency] || 0) * 0.5) *
+    (geoMult[a.geo_scope] || 1.0)
+  ));
+
+  const gmvScore = { sub1m: 10, '1m_10m': 30, '10m_50m': 55, '50m_250m': 75, '250m_plus': 95 };
+  const stageScore = { awareness: 10, discovery: 25, evaluation: 50, proposal: 70, negotiation: 85, closed: 100 };
+  dims.deal_scale = Math.round(
+    (gmvScore[a.gmv_tier] || 0) * 0.6 +
+    (stageScore[a.deal_stage] || 0) * 0.4
+  );
+
+  const compScore = { none: 5, aware: 40, active: 75, unknown: 50 };
+  const competitorBonus = { sfcc: 20, magento: 15, sap: 20, oracle: 20, custom: 10, bigcommerce: 5, other: 5, unknown: 10, na: 0 };
+  dims.competitive_pressure = Math.min(100,
+    (compScore[a.competitive_situation] || 0) +
+    (competitorBonus[a.primary_competitor] || 0)
+  );
+
+  const objectionScore = { none: 5, tco: 30, impl_risk: 40, platform_maturity: 60, integration: 50, org_change: 40, feature_gaps: 50, exec_skepticism: 70 };
+  const objections = a.objections || [];
+  dims.digital_maturity = objections.length === 0 ? 5 : Math.max(...objections.map(o => objectionScore[o] || 5));
+
+  const industryScore = { apparel: 60, beauty: 50, electronics: 70, food: 50, home: 40, sporting: 45, automotive: 75, healthcare: 80, b2b_industrial: 85, retail: 50, other: 40 };
+  dims.industry_specificity = industryScore[a.industry] || 40;
+
+  const weights = {
+    executive_access: 0.25, technical_complexity: 0.20, stakeholder_skepticism: 0.15,
+    migration_risk: 0.15, deal_scale: 0.10, competitive_pressure: 0.08,
+    digital_maturity: 0.04, industry_specificity: 0.03
+  };
+
+  const total = Math.round(Object.entries(dims).reduce((sum, [k, v]) => sum + v * weights[k], 0));
+  return { total, dims };
+}
+
+function getTier(s) {
+  if (s <= 30) return { id: 'monitor', label: 'Monitor', color: '#6b7280', desc: 'Standard sales motion — no FCTO involvement needed now.' };
+  if (s <= 55) return { id: 'consider', label: 'Consider', color: '#d97706', desc: 'Targeted FCTO touchpoint may accelerate the deal.' };
+  if (s <= 75) return { id: 'engage', label: 'Engage', color: '#ea580c', desc: 'FCTO actively participates in key conversations and demos.' };
+  return { id: 'prioritize', label: 'Prioritize', color: '#dc2626', desc: 'FCTO-led deal — high leverage, time to lean in fully.' };
+}
+
+function getDimColor(s) {
+  if (s <= 30) return '#22c55e';
+  if (s <= 55) return '#f59e0b';
+  if (s <= 75) return '#f97316';
+  return '#ef4444';
+}
+
+const DIM_LABELS = {
+  executive_access: 'Executive Access',
+  technical_complexity: 'Technical Complexity',
+  stakeholder_skepticism: 'Stakeholder Skepticism',
+  migration_risk: 'Migration Risk',
+  deal_scale: 'Deal Scale',
+  competitive_pressure: 'Competitive Pressure',
+  digital_maturity: 'Digital Maturity',
+  industry_specificity: 'Industry Specificity'
+};
+
+const DIM_DEFINITIONS = {
+  executive_access: 'How senior are the stakeholders involved? Direct CTO/CIO access — where FCTO peer credibility matters most — drives this score up.',
+  technical_complexity: 'The depth of architectural decisions: headless builds, deep integrations, multi-channel scope, and custom requirements all increase this score.',
+  stakeholder_skepticism: 'How resistant is the org to vendor claims? High skepticism means a peer CTO is far more persuasive than a sales motion.',
+  migration_risk: 'The stakes of leaving the current platform. Complex legacy systems, aggressive timelines, and global scope all increase risk — and FCTO value.',
+  deal_scale: 'The financial weight and maturity of the deal. Larger GMV tiers and late-stage opportunities get the most leverage from FCTO involvement.',
+  competitive_pressure: 'How intense is the competitive situation? Named rivals with strong technical narratives raise this dimension.',
+  digital_maturity: 'The sophistication of objections raised. Technical and architectural concerns signal an FCTO conversation will land better than a standard sales pitch.',
+  industry_specificity: 'Vertical-specific commerce complexity: B2B/wholesale, regulated industries, and niche marketplace requirements often need an FCTO to be credible.'
+};
+
+// ─── MODE SELECT ─────────────────────────────────────────────────────────────
+async function startMode(mode) {
+  if (mode === 'fcto') {
+    showLoading('Verifying access...');
+    try {
+      const user = await quick.id.waitForUser();
+      currentUser = user;
+      if (user.email !== FCTO_EMAIL) {
+        hideLoading();
+        toast('FCTO Mode is restricted. Access denied.', 'error');
+        return;
+      }
+    } catch (e) {
+      hideLoading();
+      toast('Could not verify identity.', 'error');
+      return;
+    }
+    hideLoading();
+  }
+
+  appMode = mode;
+  answers = {};
+  sfPrefilled = {};
+  sfRawData = null;
+  aiResult = null;
+  bqAuthorized = false;
+  currentStep = 0;
+
+  document.body.classList.toggle('fcto-mode', mode === 'fcto');
+  const modeIndicator = document.getElementById('mode-indicator');
+  modeIndicator.textContent = mode === 'fcto' ? 'FCTO Mode' : 'AE Mode';
+  modeIndicator.style.display = 'inline-block';
+  document.getElementById('header-back-btn').style.display = 'inline-block';
+  if (mode === 'fcto') document.getElementById('header-portfolio-btn').style.display = 'inline-block';
+
+  showPage('wizard-page');
+  renderStep();
+}
+
+function backToModeSelect() {
+  appMode = 'ae';
+  answers = {};
+  document.body.classList.remove('fcto-mode');
+  document.getElementById('mode-indicator').style.display = 'none';
+  document.getElementById('header-back-btn').style.display = 'none';
+  document.getElementById('header-portfolio-btn').style.display = 'none';
+  showPage('mode-select-page');
+}
+
+function restartWizard() {
+  answers = {};
+  sfPrefilled = {};
+  sfRawData = null;
+  aiResult = null;
+  bqAuthorized = false;
+  currentStep = 0;
+  showPage('wizard-page');
+  renderStep();
+}
+
+// ─── WIZARD RENDERING ────────────────────────────────────────────────────────
+function renderStep() {
+  const total = totalSteps();
+  const step = getWizardStep(currentStep);
+
+  // Progress bar
+  const pb = document.getElementById('progress-bar');
+  pb.innerHTML = Array.from({ length: total }, (_, i) =>
+    `<div class="progress-step ${i < currentStep ? 'done' : i === currentStep ? 'active' : ''}"></div>`
+  ).join('');
+
+  const btnBack = document.getElementById('btn-back');
+  const btnNext = document.getElementById('btn-next');
+  const btnSkip = document.getElementById('btn-skip');
+
+  btnBack.style.visibility = currentStep === 0 ? 'hidden' : 'visible';
+  btnNext.textContent = currentStep === total - 1 ? 'See Results →' : 'Next →';
+
+  if (step.type === 'sf') {
+    document.getElementById('step-label').textContent = `Step 1 of ${total} — Link Opportunity`;
+    btnSkip.style.display = 'inline-block';
+    renderSFStep();
+  } else {
+    const wizardIdx = currentStep - 1;
+    const visibleSteps = WIZARD_STEPS.filter(s => !s.fctoOnly || appMode === 'fcto');
+    const label = visibleSteps[wizardIdx]?.title || '';
+    document.getElementById('step-label').textContent = `Step ${currentStep + 1} of ${total} — ${label}`;
+    btnSkip.style.display = 'none';
+    renderWizardStep(step);
+  }
+}
+
+function renderSFStep() {
+  const sfResult = sfRawData ? buildSFResultHTML() : '';
+  document.getElementById('step-content').innerHTML = `
+    <div class="card">
+      <div class="card-title">Link a Salesforce Opportunity</div>
+      <div class="card-subtitle">Paste the opportunity URL below. The app will pre-fill the wizard and pull supporting context to enrich the AI analysis. You can skip this step if you don't have a URL handy.</div>
+      <div class="sf-url-wrap">
+        <input type="text" id="sf-url-input" value="${answers._sf_url || ''}"
+          placeholder="https://banff.lightning.force.com/lightning/r/Opportunity/006.../view">
+        <button class="sf-load-btn" id="sf-load-btn" data-action="load-sf">Load</button>
+      </div>
+      <div class="sf-hint">
+        Supports any Salesforce opportunity URL containing a record ID starting with <code>006</code>.
+        Requires Google account authorization to query BigQuery.
+      </div>
+      ${sfResult}
+    </div>`;
+}
+
+function buildSFResultHTML() {
+  const d = sfRawData;
+  const fields = [
+    d.account_name && { label: 'Account', value: d.account_name },
+    d.opportunity_name && { label: 'Opportunity', value: d.opportunity_name },
+    d.opportunity_owner && { label: 'Owner', value: d.opportunity_owner },
+    d.industry && { label: 'Industry', value: d.industry },
+    d.opportunity_stage_name && { label: 'Stage', value: d.opportunity_stage_name },
+    d.current_platform && { label: 'Platform', value: d.current_platform },
+    d.annual_revenue_amount && { label: 'ARR', value: fmtCurrency(d.annual_revenue_amount) },
+    d.close_date && { label: 'Close Date', value: d.close_date },
+    d.employee_count && { label: 'Employees', value: fmtNumber(d.employee_count) },
+    d.country && { label: 'Country', value: d.country },
+    d.region && { label: 'Region', value: d.region },
+    d.products_sold && { label: 'Products', value: d.products_sold },
+  ].filter(Boolean);
+
+  const prefilledCount = Object.keys(sfPrefilled).length;
+  const hasContext = d.opportunity_description || d.account_description;
+
+  // Raw data panel — shows actual BigQuery column names for debugging
+  const rawOppKeys = Object.keys(d._raw_opp || {}).filter(k => !k.startsWith('_'));
+  const rawAccKeys = Object.keys(d._raw_acc || {}).filter(k => !k.startsWith('_'));
+  const rawDebugPanel = (rawOppKeys.length || rawAccKeys.length) ? `
+    <details class="sf-raw-panel">
+      <summary class="sf-raw-toggle">Raw BQ columns (debug)</summary>
+      <div class="sf-raw-content">
+        ${rawOppKeys.length ? `<div class="sf-raw-section"><strong>Opportunity columns (${rawOppKeys.length}):</strong><br>${rawOppKeys.map(k => `<code>${k}</code>: ${JSON.stringify(d._raw_opp[k])}`).join('<br>')}</div>` : ''}
+        ${rawAccKeys.length ? `<div class="sf-raw-section"><strong>Account columns (${rawAccKeys.length}):</strong><br>${rawAccKeys.map(k => `<code>${k}</code>: ${JSON.stringify(d._raw_acc[k])}`).join('<br>')}</div>` : ''}
+      </div>
+    </details>` : '';
+
+  return `
+    <div class="sf-result">
+      <div class="sf-result-header">
+        <div class="sf-result-icon">✅</div>
+        <div>
+          <div class="sf-result-title">${d.account_name || d.opportunity_name || 'Opportunity'} loaded</div>
+          <div class="sf-result-subtitle">Pre-filled ${prefilledCount} field${prefilledCount !== 1 ? 's' : ''} · AI context enriched</div>
+        </div>
+      </div>
+      <div class="sf-fields-grid">
+        ${fields.map(f => `
+          <div class="sf-field-item">
+            <div class="sf-field-label">${f.label}</div>
+            <div class="sf-field-value">${f.value}</div>
+          </div>`).join('')}
+      </div>
+      ${hasContext ? `
+        <div class="sf-context-section">
+          <div class="sf-context-label">Supporting Context (fed to AI)</div>
+          <div class="sf-context-text">${[d.opportunity_description, d.account_description].filter(Boolean).join('\n\n')}</div>
+        </div>` : ''}
+      ${rawDebugPanel}
+    </div>`;
+}
+
+function renderWizardStep(step) {
+  let html = `<div class="card"><div class="card-title">${step.title}</div><div class="card-subtitle">${step.subtitle}</div>`;
+  for (const field of step.fields) html += renderField(field);
+  html += '</div>';
+  document.getElementById('step-content').innerHTML = html;
+}
+
+function renderField(field) {
+  const val = answers[field.id];
+  let html = `<div class="field" id="field-${field.id}">`;
+  html += `<label class="field-label">${field.label}${field.required ? '<span class="required">*</span>' : ''}`;
+  if (sfPrefilled[field.id]) html += `<span class="sf-badge">SF</span>`;
+  html += `</label>`;
+
+  if (field.type === 'text') {
+    html += `<input type="text" id="input-${field.id}" value="${val || ''}" placeholder="${field.placeholder || ''}" data-field="${field.id}">`;
+  } else if (field.type === 'textarea') {
+    html += `<textarea id="input-${field.id}" placeholder="${field.placeholder || ''}" data-field="${field.id}">${val || ''}</textarea>`;
+  } else if (field.type === 'radio') {
+    const usePills = field.options.length > 4;
+    html += `<div class="options-grid ${usePills ? 'pills' : `cols-${field.cols || 2}`}">`;
+    for (const opt of field.options) {
+      const sel = val === opt.value ? 'selected' : '';
+      html += `<div class="option-card ${sel}" data-action="radio" data-field="${field.id}" data-value="${opt.value}">
+        <div class="option-indicator"></div><div class="option-text">${opt.label}</div></div>`;
+    }
+    html += '</div>';
+  } else if (field.type === 'multi') {
+    const selected = val || [];
+    const usePills = field.options.length > 4;
+    html += `<div class="options-grid ${usePills ? 'pills' : `cols-${field.cols || 2}`}">`;
+    for (const opt of field.options) {
+      const sel = selected.includes(opt.value) ? 'selected' : '';
+      html += `<div class="option-card ${sel}" data-action="multi" data-field="${field.id}" data-value="${opt.value}">
+        <div class="option-indicator checkbox"></div><div class="option-text">${opt.label}</div></div>`;
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+function setAnswer(id, value) {
+  answers[id] = value;
+  if (sfPrefilled[id]) { delete sfPrefilled[id]; document.querySelectorAll(`#field-${id} .sf-badge`).forEach(b => b.remove()); }
+  clearError(id);
+}
+
+function selectRadio(id, value, el) {
+  answers[id] = value;
+  if (sfPrefilled[id]) { delete sfPrefilled[id]; document.querySelectorAll(`#field-${id} .sf-badge`).forEach(b => b.remove()); }
+  el.closest('.options-grid').querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  clearError(id);
+}
+
+function toggleMulti(id, value, el) {
+  if (!answers[id]) answers[id] = [];
+  const arr = answers[id];
+  const idx = arr.indexOf(value);
+  if (idx === -1) arr.push(value); else arr.splice(idx, 1);
+  el.classList.toggle('selected');
+  clearError(id);
+}
+
+function clearError(id) { document.getElementById(`field-${id}`)?.classList.remove('error'); }
+
+function validateStep() {
+  const step = getWizardStep(currentStep);
+  if (step.type === 'sf') return true; // SF step is always optional
+  let errors = [];
+  for (const field of step.fields) {
+    if (!field.required) continue;
+    const val = answers[field.id];
+    if (!val || (Array.isArray(val) && val.length === 0) || val === '') errors.push(field.id);
+  }
+  if (errors.length > 0) {
+    errors.forEach(id => document.getElementById(`field-${id}`)?.classList.add('error'));
+    const msg = errors.length === 1 ? 'Please complete the highlighted field.' : `Please complete all ${errors.length} highlighted fields.`;
+    toast(msg, 'error');
+    document.getElementById(`field-${errors[0]}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return false;
+  }
+  return true;
+}
+
+async function wizardNext() {
+  if (!validateStep()) return;
+  const total = totalSteps();
+  if (currentStep < total - 1) {
+    currentStep++;
+    renderStep();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } else {
+    await generateResults();
+  }
+}
+
+function wizardSkip() {
+  // Only available on SF step
+  currentStep++;
+  renderStep();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function wizardBack() {
+  if (currentStep > 0) {
+    currentStep--;
+    renderStep();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+
+// ─── SALESFORCE LOAD ──────────────────────────────────────────────────────────
+async function loadFromSalesforce() {
+  const urlEl = document.getElementById('sf-url-input');
+  const url = urlEl?.value?.trim() || '';
+  answers._sf_url = url;
+
+  const oppIdMatch = url.match(/\/(006[A-Za-z0-9]{12,})(?:\/|$)/);
+  if (!oppIdMatch) {
+    showSFError('Could not extract a valid Opportunity ID from that URL. Make sure it contains a record ID starting with "006".');
+    return;
+  }
+  const oppId = oppIdMatch[1];
+
+  const btn = document.getElementById('sf-load-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Loading...'; }
+
+  try {
+    // Request BigQuery OAuth if not yet granted
+    if (!bqAuthorized) {
+      const authResult = await quick.auth.requestScopes(['https://www.googleapis.com/auth/bigquery']);
+      if (!authResult.hasRequiredScopes) throw new Error('BigQuery access was not granted. Please allow access and try again.');
+      bqAuthorized = true;
+    }
+
+    // Query 1: Opportunity — SELECT * to avoid column name mismatches
+    const oppSql = `
+      SELECT *
+      FROM \`shopify-dw.sales.sales_opportunities_v1\`
+      WHERE opportunity_id = '${oppId}'
+      LIMIT 1`;
+
+    let opp = {};
+    try {
+      const oppRes = await quick.dw.querySync(oppSql);
+      opp = oppRes.results?.[0] || {};
+    } catch (e) {
+      throw new Error(`Opportunity query failed: ${e.message}`);
+    }
+
+    // Query 2: Account — SELECT * to avoid column name mismatches
+    const accSql = `
+      SELECT *
+      FROM \`shopify-dw.sales.sales_accounts_v1\`
+      WHERE opportunity_id = '${oppId}'
+      LIMIT 1`;
+
+    let acc = {};
+    try {
+      const accRes = await quick.dw.querySync(accSql);
+      acc = accRes.results?.[0] || {};
+    } catch (e) {
+      // Account query failure is non-fatal — continue with opp data only
+      console.warn('Account query failed:', e.message);
+    }
+
+    // AI-assisted field extraction — schema-agnostic, no hardcoded column guessing
+    const aiExtractionPrompt = `You are extracting fields from raw Shopify CRM data warehouse rows.
+Look across ALL column names semantically — column names vary across environments.
+Return ONLY valid JSON with these exact keys (use null for any field you cannot find):
+
+{
+  "account_name": "string or null — company / merchant name",
+  "opportunity_name": "string or null — deal or opportunity name",
+  "opportunity_owner": "string or null — sales rep or opportunity owner name",
+  "opportunity_stage_name": "string or null — current pipeline stage",
+  "close_date": "string or null — expected close date",
+  "annual_revenue_amount": "number or null — annual revenue or ARR in USD",
+  "industry": "string or null — merchant industry or vertical",
+  "current_platform": "string or null — current e-commerce platform",
+  "employee_count": "number or null — number of employees",
+  "country": "string or null — billing or primary country",
+  "region": "string or null — region or territory (e.g. AMER, EMEA, APAC)",
+  "products_sold": "string or null — Shopify products in scope",
+  "opportunity_description": "string or null — deal notes or description",
+  "account_description": "string or null — account notes or company description"
+}
+
+OPPORTUNITY ROW:
+${JSON.stringify(opp, null, 2)}
+
+ACCOUNT ROW:
+${JSON.stringify(acc, null, 2)}`;
+
+    let extracted = {};
+    try {
+      const aiRaw = await quick.ai.askWithSystem(
+        'You extract structured data from raw database rows. Respond only with valid JSON, nothing else.',
+        aiExtractionPrompt
+      );
+      extracted = JSON.parse(aiRaw.match(/\{[\s\S]*\}/)?.[0] || '{}');
+    } catch (e) {
+      console.warn('AI extraction failed:', e.message);
+    }
+
+    // Fallback key scan — catches fields AI missed, especially account_name which
+    // is often denormalized into the opportunity row under a predictable column name
+    const allRaw = { ...opp, ...acc };
+    const scanKey = (...candidates) => {
+      for (const c of candidates) {
+        const key = Object.keys(allRaw).find(k => k.toLowerCase() === c.toLowerCase());
+        if (key && allRaw[key] != null && allRaw[key] !== '') return allRaw[key];
+      }
+      return null;
+    };
+    if (!extracted.account_name)       extracted.account_name       = scanKey('account_name','company_name','acct_name','account_nm','client_name');
+    // Fuzzy fallback: any key containing both 'account' and 'name' as substrings
+    if (!extracted.account_name) {
+      const fuzzyKey = Object.keys(allRaw).find(k => { const kl = k.toLowerCase(); return kl.includes('account') && kl.includes('name'); });
+      if (fuzzyKey && allRaw[fuzzyKey]) extracted.account_name = allRaw[fuzzyKey];
+    }
+    if (!extracted.opportunity_name)   extracted.opportunity_name   = scanKey('opportunity_name','opp_name','name','deal_name');
+    if (!extracted.opportunity_owner)  extracted.opportunity_owner  = scanKey('opportunity_owner','owner_name','rep_name','owner','assigned_to','created_by_name');
+    if (!extracted.opportunity_stage_name) extracted.opportunity_stage_name = scanKey('opportunity_stage_name','stage_name','stage','sales_stage');
+    if (!extracted.close_date)         extracted.close_date         = scanKey('close_date','closedate','close_dt','expected_close');
+    if (!extracted.annual_revenue_amount) extracted.annual_revenue_amount = scanKey('annual_revenue_amount','annual_revenue','arr','amount');
+    if (!extracted.industry)           extracted.industry           = scanKey('industry','industry_name','vertical','segment');
+    if (!extracted.current_platform)   extracted.current_platform   = scanKey('current_platform','platform','commerce_platform','tech_stack');
+    if (!extracted.country)            extracted.country            = scanKey('country','billing_country','country_code','country_name');
+    if (!extracted.region)             extracted.region             = scanKey('region','territory','opp_region','account_region');
+
+    // Opportunity name parser: "AccountName - Deal Description" pattern
+    if (!extracted.account_name && extracted.opportunity_name) {
+      const dashIdx = extracted.opportunity_name.indexOf(' - ');
+      if (dashIdx > 0) extracted.account_name = extracted.opportunity_name.slice(0, dashIdx).trim();
+    }
+
+    // Store for display and AI prompt enrichment
+    sfRawData = {
+      ...extracted,
+      opportunity_id: oppId,
+      _raw_opp: opp,
+      _raw_acc: acc
+    };
+
+    if (!sfRawData.account_name && !sfRawData.opportunity_name) {
+      throw new Error(`No recognizable data found for opportunity ID ${oppId}. The record may not exist in the data warehouse yet, or you may not have access.`);
+    }
+
+    // Map extracted fields to wizard answers
+    const mappings = {};
+
+    if (extracted.account_name) mappings.account_name = extracted.account_name;
+
+    if (extracted.industry) {
+      const iMap = { Apparel: 'apparel', Fashion: 'apparel', Beauty: 'beauty', Cosmetics: 'beauty',
+        Electronics: 'electronics', Technology: 'electronics', Food: 'food', Beverage: 'food',
+        Home: 'home', Garden: 'home', Sporting: 'sporting', Sport: 'sporting', Fitness: 'sporting',
+        Automotive: 'automotive', Auto: 'automotive', Healthcare: 'healthcare', Health: 'healthcare',
+        'B2B': 'b2b_industrial', Industrial: 'b2b_industrial', Manufacturing: 'b2b_industrial',
+        Retail: 'retail', Specialty: 'retail' };
+      const hit = Object.entries(iMap).find(([k]) => extracted.industry?.toLowerCase().includes(k.toLowerCase()));
+      if (hit) mappings.industry = hit[1];
+    }
+
+    if (extracted.opportunity_stage_name) {
+      const sMap = { Prospect: 'awareness', Awareness: 'awareness', Discovery: 'discovery',
+        Eval: 'evaluation', Proposal: 'proposal', Negotiat: 'negotiation',
+        'Closed Won': 'closed', 'Closed Lost': 'closed' };
+      const hit = Object.entries(sMap).find(([k]) => extracted.opportunity_stage_name?.includes(k));
+      if (hit) mappings.deal_stage = hit[1];
+    }
+
+    if (extracted.current_platform) {
+      const pMap = { Magento: 'magento', Adobe: 'magento', Salesforce: 'sfcc', SAP: 'sap',
+        Oracle: 'oracle', BigCommerce: 'bigcommerce', WooCommerce: 'woocommerce',
+        Shopify: 'shopify', Custom: 'custom', Proprietary: 'custom' };
+      const hit = Object.entries(pMap).find(([k]) => extracted.current_platform?.includes(k));
+      if (hit) mappings.platform = hit[1];
+    }
+
+    if (extracted.annual_revenue_amount) {
+      const r = parseFloat(extracted.annual_revenue_amount);
+      if (!isNaN(r)) {
+        mappings.gmv_tier = r < 1e6 ? 'sub1m' : r < 10e6 ? '1m_10m' : r < 50e6 ? '10m_50m' : r < 250e6 ? '50m_250m' : '250m_plus';
+      }
+    }
+
+    if (extracted.country || extracted.region) {
+      const r = (extracted.region || '').toLowerCase();
+      mappings.geo_scope = r.includes('global') || r.includes('international') ? 'global'
+        : r.includes('emea') || r.includes('apac') || r.includes('latam') ? 'regional'
+        : 'single';
+    }
+
+    Object.assign(answers, mappings);
+    Object.keys(mappings).forEach(k => { sfPrefilled[k] = true; });
+
+    // Query 3: Recent sales calls from Salesloft (non-fatal)
+    try {
+      const callsSql = `
+        SELECT
+          FORMAT_TIMESTAMP('%Y-%m-%d', event_start) AS call_date,
+          call_title,
+          call_duration_minutes,
+          call_sentiment,
+          call_disposition,
+          has_transcript,
+          transcript_summary.text AS summary,
+          platform
+        FROM \`shopify-dw.sales.sales_calls\`
+        WHERE most_recent_salesforce_opportunity_id = '${oppId}'
+        ORDER BY event_start DESC
+        LIMIT 6`;
+      const callsRes = await quick.dw.querySync(callsSql);
+      sfRawData.salesloft_calls = callsRes.results || [];
+    } catch (e) {
+      console.warn('Salesloft calls query failed:', e.message);
+      sfRawData.salesloft_calls = [];
+    }
+
+    // Query 4: Activity timeline from Salesloft/Salesforce activity table (non-fatal)
+    try {
+      const actSql = `
+        SELECT
+          CAST(activity_date AS STRING) AS activity_date,
+          activity_type,
+          activity_subject,
+          owner_name,
+          user_role_type,
+          call_connected,
+          meaningful_activity,
+          call_outcome
+        FROM \`sdp-for-analysts-platform.rev_ops_prod.salesforce_activity\`
+        WHERE opportunity_id = '${oppId}'
+        ORDER BY activity_date DESC
+        LIMIT 20`;
+      const actRes = await quick.dw.querySync(actSql);
+      sfRawData.salesloft_activities = actRes.results || [];
+    } catch (e) {
+      console.warn('Activity query failed:', e.message);
+      sfRawData.salesloft_activities = [];
+    }
+
+    // Re-render SF step to show results card
+    renderSFStep();
+
+  } catch (err) {
+    sfRawData = null;
+    const errMsg = err.message || 'Failed to load from Salesforce.';
+    const existingResult = document.querySelector('.sf-result');
+    if (existingResult) existingResult.remove();
+    const existing = document.querySelector('.sf-error');
+    if (existing) existing.remove();
+    const card = document.querySelector('.card');
+    if (card) card.insertAdjacentHTML('beforeend', `<div class="sf-error">✕ ${errMsg}</div>`);
+  } finally {
+    const b = document.getElementById('sf-load-btn');
+    if (b) { b.disabled = false; b.textContent = 'Load'; }
+  }
+}
+
+function showSFError(msg) {
+  document.querySelector('.sf-error')?.remove();
+  document.querySelector('.sf-result')?.remove();
+  document.querySelector('.card')?.insertAdjacentHTML('beforeend', `<div class="sf-error">✕ ${msg}</div>`);
+}
+
+// ─── RESULTS ─────────────────────────────────────────────────────────────────
+async function generateResults() {
+  showLoading('Analyzing opportunity...');
+
+  const scored = score(answers);
+  const tier = getTier(scored.total);
+
+  let analysis = null;
+  try {
+    const raw = await quick.ai.askWithSystem(
+      'You are a Shopify Field CTO advisor. Produce concise, enterprise-grade analysis. Respond only with valid JSON.',
+      buildAIPrompt(scored, answers)
+    );
+    analysis = JSON.parse(raw.match(/\{[\s\S]*\}/)?.[0] || '{}');
+  } catch (e) { analysis = null; }
+
+  aiResult = { scored, tier, analysis, answers: { ...answers }, sfRawData, timestamp: new Date().toISOString() };
+
+  // Record assessment usage
+  quick.db.collection('usage_log').create({
+    email: currentUser?.email || '',
+    name: currentUser?.fullName || '',
+    slack_handle: currentUser?.slackHandle || '',
+    account_name: aiResult.answers.account_name || 'Unknown',
+    score: aiResult.scored.total,
+    tier: aiResult.tier.id,
+    assessed_at: new Date().toISOString(),
+    event: 'assessment'
+  }).catch(() => {});
+
+  // Auto-save every assessment silently (no loading UI)
+  quick.db.collection('fcto_signal_portfolio').create({
+    account_name: aiResult.answers.account_name || 'Unknown',
+    industry: aiResult.answers.industry || '',
+    gmv_tier: aiResult.answers.gmv_tier || '',
+    deal_stage: aiResult.answers.deal_stage || '',
+    score: aiResult.scored.total,
+    tier: aiResult.tier.id,
+    dims: aiResult.scored.dims,
+    answers: aiResult.answers,
+    analysis: aiResult.analysis,
+    sf_data: aiResult.sfRawData || null,
+    saved_at: new Date().toISOString()
+  }).catch(e => console.warn('Auto-save failed:', e.message));
+
+  hideLoading();
+  renderResults(aiResult);
+  showPage('results-page');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function buildAIPrompt(scored, a) {
+  const dims = Object.entries(scored.dims).map(([k, v]) => `${DIM_LABELS[k]}: ${v}/100`).join(', ');
+  const sf = sfRawData;
+  let sfContext = '';
+  if (sf) {
+    sfContext = `\nSalesforce data:\n`;
+    if (sf.opportunity_name) sfContext += `- Opportunity: ${sf.opportunity_name}\n`;
+    if (sf.opportunity_owner) sfContext += `- Owner: ${sf.opportunity_owner}\n`;
+    if (sf.products_sold) sfContext += `- Products in scope: ${sf.products_sold}\n`;
+    if (sf.close_date) sfContext += `- Close date: ${sf.close_date}\n`;
+    if (sf.opportunity_description) sfContext += `- Opportunity notes: ${sf.opportunity_description}\n`;
+    if (sf.account_description) sfContext += `- Account profile: ${sf.account_description}\n`;
+
+    // Salesloft call data
+    if (sf.salesloft_calls?.length) {
+      sfContext += `\nRecent sales calls (${sf.salesloft_calls.length}):\n`;
+      sf.salesloft_calls.forEach(c => {
+        const summary = c.summary ? ` — "${c.summary.slice(0, 220).replace(/\n/g, ' ')}"` : '';
+        sfContext += `- ${c.call_date}: "${c.call_title || 'Untitled'}" via ${c.platform || 'unknown'}, ${c.call_duration_minutes || '?'} min, ${c.call_disposition || ''}${c.call_sentiment ? `, sentiment: ${c.call_sentiment}` : ''}${summary}\n`;
+      });
+    } else if (sf.salesloft_calls !== undefined) {
+      sfContext += `\nNo recorded sales calls found for this opportunity.\n`;
+    }
+
+    // Salesloft activity engagement signals
+    if (sf.salesloft_activities?.length) {
+      const byType = sf.salesloft_activities.reduce((acc, a) => { acc[a.activity_type] = (acc[a.activity_type] || 0) + 1; return acc; }, {});
+      const meaningful = sf.salesloft_activities.filter(a => a.meaningful_activity);
+      sfContext += `\nEngagement activity (last ${sf.salesloft_activities.length}): ${Object.entries(byType).map(([t, c]) => `${c} ${t}`).join(', ')}. Meaningful touchpoints: ${meaningful.length}.\n`;
+      const topMeaningful = meaningful.slice(0, 4);
+      if (topMeaningful.length) {
+        sfContext += `Most recent meaningful activities:\n`;
+        topMeaningful.forEach(a => {
+          sfContext += `- ${a.activity_date}: ${a.activity_type} — "${a.activity_subject}" (${a.owner_name || ''}${a.user_role_type ? `, ${a.user_role_type}` : ''})\n`;
+        });
+      }
+    }
+  }
+
+  return `Analyze this Shopify enterprise deal for FCTO involvement.
+
+Account: ${a.account_name || 'Unknown'} | Industry: ${a.industry} | GMV: ${a.gmv_tier} | Stage: ${a.deal_stage}
+Platform: ${a.platform} | Integrations: ${a.integration_complexity} | Headless: ${a.headless} | Urgency: ${a.urgency}
+Contact: ${a.contact_level} | CTO involvement: ${a.cto_involvement} | Org receptivity: ${a.org_receptivity}
+Competitive: ${a.competitive_situation} | Competitor: ${a.primary_competitor || 'none'} | Channels: ${(a.channels || []).join(', ') || 'D2C'}
+Objections: ${(a.objections || []).join(', ') || 'none'} | Geo: ${a.geo_scope}
+${sfContext}
+Overall score: ${scored.total}/100 (${getTier(scored.total).label})
+Dimensions: ${dims}
+${a.raw_context ? `\nAdditional context:\n${a.raw_context}` : ''}
+
+Return valid JSON only — no other text:
+{
+  "rationale": "2–3 sentence paragraph explaining WHY this score reflects this FCTO involvement level — what about this account's situation, deal stage, technical complexity, or stakeholder dynamics makes this the right tier? Be specific to this account.",
+  "signals": ["key factor driving this score up (specific to this account/deal)", "second signal", "third signal"],
+  "risks": ["primary risk or watch point for this specific deal", "second risk", "third risk"],
+  "actions": ["Action phrased as a concrete recommendation that naturally includes 'FCTO' as the actor or collaborator in the sentence — e.g. 'Have your FCTO join the architecture call with [Account]'s CTO to address X' or 'Coordinate a [topic] session with your FCTO and the [Account] team'. Always name the account. Never start with 'Conduct' — be specific and action-oriented.", "second action in same style", "third action in same style"],
+  "rec_title": "One-line action directive for the AE (e.g. 'Loop in FCTO before the architecture review with [account]'s CTO')",
+  "rec_actions": ["concrete next step #1 (who does what, by when)", "concrete next step #2", "concrete next step #3"]
+}`;
+}
+
+function renderResults(result) {
+  const { scored, tier, analysis } = result;
+  const acct = result.answers.account_name || 'Unnamed Account';
+  const sfLoaded = !!(result.sfRawData || sfRawData);
+  const tierIcons = { monitor: '👁', consider: '💡', engage: '🤝', prioritize: '🚨' };
+
+  // Score number color matches tier
+  const scoreFg = { monitor: 'var(--s500)', consider: 'var(--amber)', engage: 'var(--orange)', prioritize: 'var(--red)' }[tier.id] || 'var(--accent)';
+
+  let html = `
+  <div class="card">
+    <div class="card-title">${acct}${sfLoaded ? ' <span class="sf-badge">SF</span>' : ''}</div>
+    <div class="card-subtitle">FCTO Involvement Score &nbsp;·&nbsp; <span class="methodology-link" data-action="open-modal">Scoring methodology</span></div>
+    <div class="score-charts-row">
+      <div style="text-align:center;max-width:240px;margin:0 auto;width:100%">
+        <canvas id="gauge-canvas" width="300" height="172" style="width:100%;aspect-ratio:300/172"></canvas>
+        <div class="score-number-big" style="color:${scoreFg};margin-top:4px">${scored.total}</div>
+        <div class="score-denom">out of 100</div>
+        <div class="score-tier-pill ${tier.id}" style="display:inline-flex;margin:10px auto 0">${tierIcons[tier.id]} ${tier.label}</div>
+      </div>
+      <div style="text-align:center;max-width:280px;margin:0 auto;width:100%">
+        <canvas id="radar-canvas" width="300" height="300" style="width:100%;aspect-ratio:1"></canvas>
+      </div>
+    </div>
+  </div>`;
+
+  // Why FCTO? card — rationale or tier desc fallback
+  const rationaleText = analysis?.rationale || tier.desc;
+  html += `
+  <div class="card">
+    <div class="why-fcto-card ${tier.id}">
+      <div class="why-fcto-eyebrow">Why ${tier.id === 'monitor' ? 'no' : 'yes'} — FCTO involvement rationale</div>
+      <div class="why-fcto-text">${rationaleText}</div>
+      ${analysis?.rec_actions?.length ? `
+        <div class="why-fcto-actions">
+          <div class="why-fcto-actions-title">Recommended next steps</div>
+          <ul>${analysis.rec_actions.map(a => `<li>${a}</li>`).join('')}</ul>
+        </div>` : ''}
+    </div>
+  </div>`;
+
+  html += `
+  <div class="card">
+    <div class="card-title" style="margin-bottom:16px">Dimension Breakdown</div>
+    <div class="dims-grid">
+      ${Object.entries(scored.dims).map(([k, v]) => {
+        const badge = v <= 30 ? { label: 'Low', bg: '#dcfce7', color: '#16a34a' }
+          : v <= 55 ? { label: 'Moderate', bg: '#fef9c3', color: '#a16207' }
+          : v <= 75 ? { label: 'High', bg: '#ffedd5', color: '#c2410c' }
+          : { label: 'Critical', bg: '#fee2e2', color: '#b91c1c' };
+        return `
+        <div class="dim-row">
+          <div class="dim-name" data-tip="${DIM_DEFINITIONS[k]}">${DIM_LABELS[k]}</div>
+          <div class="dim-bar-wrap"><div class="dim-bar" style="width:${v}%;background:${getDimColor(v)}"></div></div>
+          <div class="dim-score-cell">
+            <div class="dim-score">${v}</div>
+            <div class="dim-badge" style="background:${badge.bg};color:${badge.color}">${badge.label}</div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+
+  if (analysis?.signals) {
+    if (analysis?.actions?.length) {
+      html += `<div class="card">
+        <div class="card-title" style="margin-bottom:16px">FCTO Actions</div>
+        <div class="ai-col">
+          ${analysis.actions.map((action, i) => `
+            <div class="ai-item-wrap" id="action-wrap-${i}">
+              <div class="ai-item" style="margin-bottom:0">${action}</div>
+              <button class="expand-btn" data-action="expand-action" data-idx="${i}">Expand ↓</button>
+            </div>`).join('')}
+        </div>
+      </div>`;
+    }
+    html += `<div class="card">
+      <div class="card-title" style="margin-bottom:16px">AI Analysis</div>
+      <div class="ai-col">
+        <div class="ai-col-title">📈 Signals Driving the Score</div>
+        ${analysis.signals.map(s => `<div class="ai-item" style="margin-bottom:6px">${s}</div>`).join('')}
+      </div>
+      <div class="ai-section-divider"></div>
+      <div class="ai-col">
+        <div class="ai-col-title">⚠️ Key Risks & Watch Points</div>
+        ${analysis.risks.map(r => `<div class="ai-item" style="margin-bottom:6px;border-left-color:var(--amber)">${r}</div>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  html += `<div class="report-action-row">
+    <button class="btn-report" style="background:var(--s100);color:var(--text)" data-action="edit-answers">← Edit Answers</button>
+    <button class="btn-report send-slack" data-action="action-report">📨 Send to Slack</button>
+    ${appMode === 'fcto' ? `<button class="btn btn-primary" data-action="save-portfolio">Save to Portfolio</button>` : ''}
+  </div>`;
+
+  document.getElementById('results-content').innerHTML = html;
+  requestAnimationFrame(() => {
+    renderGauge(scored.total);
+    renderRadar(scored.dims);
+  });
+}
+
+function renderGauge(score) {
+  const canvas = document.getElementById('gauge-canvas');
+  if (!canvas) return;
+  const W = canvas.width, H = canvas.height;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+
+  const cx = W / 2;
+  const cy = H - 12;
+  const outerR = cx - 18;      // 300/2-18 = 132
+  const innerR = outerR * 0.63;// ~83 — thick donut arc
+
+  // Arc from left (π, score=0) clockwise through top to right (2π, score=100)
+  const toAngle = s => Math.PI + (s / 100) * Math.PI;
+
+  // Background track
+  ctx.beginPath();
+  ctx.arc(cx, cy, outerR, Math.PI, 2 * Math.PI);
+  ctx.arc(cx, cy, innerR, 2 * Math.PI, Math.PI, true);
+  ctx.closePath();
+  ctx.fillStyle = '#f1f5f9';
+  ctx.fill();
+
+  // Green conic gradient: light mint → vivid green → deep forest
+  // createConicGradient(startAngle, cx, cy): stop 0 at startAngle, stop 1 at startAngle+2π
+  // stop 0 = π (left, score=0) … stop 0.5 = 2π (right, score=100)
+  const grad = ctx.createConicGradient(Math.PI, cx, cy);
+  grad.addColorStop(0,    '#bbf7d0'); // light mint     — low scores
+  grad.addColorStop(0.25, '#22c55e'); // vivid green    — mid scores
+  grad.addColorStop(0.5,  '#14532d'); // deep forest    — high scores
+  ctx.beginPath();
+  ctx.arc(cx, cy, outerR, Math.PI, 2 * Math.PI);
+  ctx.arc(cx, cy, innerR, 2 * Math.PI, Math.PI, true);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Calibration ticks — white lines cutting through the arc at 0, 25, 50, 75, 100
+  for (const t of [0, 25, 50, 75, 100]) {
+    const a = toAngle(t);
+    const isMajor = t === 0 || t === 50 || t === 100;
+    ctx.beginPath();
+    ctx.moveTo(cx + (innerR - 1) * Math.cos(a), cy + (innerR - 1) * Math.sin(a));
+    ctx.lineTo(cx + (outerR + 1) * Math.cos(a), cy + (outerR + 1) * Math.sin(a));
+    ctx.strokeStyle = 'rgba(255,255,255,0.75)';
+    ctx.lineWidth = isMajor ? 2.5 : 1.5;
+    ctx.lineCap = 'butt';
+    ctx.stroke();
+  }
+
+  // Needle
+  const needleAngle = toAngle(score);
+  const needleLen = (outerR + innerR) / 2 + 8; // tip reaches past midpoint
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,.22)';
+  ctx.shadowBlur = 5;
+  ctx.shadowOffsetX = 1;
+  ctx.shadowOffsetY = 2;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(cx + needleLen * Math.cos(needleAngle), cy + needleLen * Math.sin(needleAngle));
+  ctx.strokeStyle = '#0f172a';
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+  ctx.restore();
+
+  // Hub: white ring + dark core
+  ctx.beginPath(); ctx.arc(cx, cy, 9, 0, 2 * Math.PI); ctx.fillStyle = '#fff'; ctx.fill();
+  ctx.beginPath(); ctx.arc(cx, cy, 5.5, 0, 2 * Math.PI); ctx.fillStyle = '#0f172a'; ctx.fill();
+}
+
+function renderRadar(dims) {
+  const canvas = document.getElementById('radar-canvas');
+  if (!canvas) return;
+  if (radarChart) { radarChart.destroy(); radarChart = null; }
+  radarChart = new Chart(canvas.getContext('2d'), {
+    type: 'radar',
+    data: {
+      labels: Object.values(DIM_LABELS).map(l => l.split(' ')),
+      datasets: [{ data: Object.values(dims), backgroundColor: 'rgba(99,102,241,0.15)', borderColor: '#6366f1', pointBackgroundColor: '#6366f1', borderWidth: 2, pointRadius: 4 }]
+    },
+    options: {
+      responsive: false,
+      scales: { r: { min: 0, max: 100, ticks: { display: false }, grid: { color: '#e2e8f0' }, pointLabels: { font: { size: 11, family: 'Inter' }, color: '#64748b' } } },
+      plugins: { legend: { display: false } },
+      animation: { duration: 600 }
+    }
+  });
+}
+
+// ─── EXPAND ACTION ───────────────────────────────────────────────────────────
+async function expandAction(index) {
+  const wrap = document.getElementById(`action-wrap-${index}`);
+  if (!wrap) return;
+  const btn = wrap.querySelector('.expand-btn');
+  const existing = wrap.querySelector('.action-expansion');
+
+  // Toggle collapse
+  if (existing) {
+    existing.remove();
+    if (btn) btn.textContent = 'Expand ↓';
+    return;
+  }
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Loading...'; }
+
+  const actionText = wrap.querySelector('.ai-item')?.textContent || '';
+  const a = aiResult?.answers || {};
+  const sf = aiResult?.sfRawData || sfRawData;
+
+  const prompt = `A Shopify Field CTO has identified this action for the deal:
+
+"${actionText}"
+
+Merchant profile:
+- Account: ${a.account_name || 'Unknown'}
+- Industry: ${a.industry || '—'}
+- Current platform: ${a.platform || '—'}
+- GMV: ${a.gmv_tier || '—'}
+- Stage: ${a.deal_stage || '—'}
+- Integration complexity: ${a.integration_complexity || '—'}
+- Headless: ${a.headless || '—'}
+- Geo: ${a.geo_scope || '—'}
+- Channels: ${(a.channels || []).join(', ') || 'D2C'}
+- Competitive: ${a.competitive_situation || '—'} (${a.primary_competitor || 'none'})
+- Objections: ${(a.objections || []).join(', ') || 'none'}
+${sf?.opportunity_description ? `- Deal notes: ${sf.opportunity_description}` : ''}
+${sf?.account_description ? `- Account profile: ${sf.account_description}` : ''}
+
+Provide 3–4 specific, concrete ideas to execute this action.
+Be specific to this merchant — name their platform, industry, competitor, geography.
+Include real Shopify resources, case studies, or conversation hooks where relevant
+(e.g. if on SFCC, reference SFCC→Shopify migration playbook; if B2B, reference B2B/wholesale case studies;
+if automotive, reference relevant enterprise wins; if global, address multi-market launch approach).
+
+Return JSON array only: [{"idea": "short title", "detail": "2–3 sentence explanation with specifics"}, ...]`;
+
+  try {
+    const raw = await quick.ai.askWithSystem(
+      'You are a Shopify Field CTO. Produce concise, specific, actionable advice tailored to the merchant. Respond only with a valid JSON array.',
+      prompt
+    );
+    const ideas = JSON.parse(raw.match(/\[[\s\S]*\]/)?.[0] || '[]');
+
+    const div = document.createElement('div');
+    div.className = 'action-expansion';
+    div.innerHTML = ideas.map(idea => `
+      <div class="expansion-item">
+        <div class="expansion-bullet">→</div>
+        <div class="expansion-body">
+          <div class="expansion-idea">${idea.idea}</div>
+          <div class="expansion-detail">${idea.detail}</div>
+        </div>
+      </div>`).join('');
+    wrap.appendChild(div);
+    if (btn) { btn.textContent = 'Collapse ↑'; btn.disabled = false; }
+  } catch (e) {
+    toast('Failed to expand action. Try again.', 'error');
+    if (btn) { btn.textContent = 'Expand ↓'; btn.disabled = false; }
+  }
+}
+
+// ─── ACTION REPORT (SLACK) ────────────────────────────────────────────────────
+async function actionReport() {
+  const btn = document.querySelector('[data-action="action-report"]');
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+
+  try {
+    const { scored, tier, analysis, answers: a } = aiResult;
+    const sf = aiResult.sfRawData || sfRawData;
+
+    // Get assessor identity
+    let assessor = null;
+    try { assessor = await quick.id.waitForUser(); } catch (e) {}
+
+    // Build self-contained HTML report for upload
+    const reportHtml = buildReportHTML();
+    const slug = (a.account_name || 'report').toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 30);
+    const fileName = `fcto-signal-${slug}-${Date.now()}.html`;
+    const file = new File([new Blob([reportHtml], { type: 'text/html' })], fileName, { type: 'text/html' });
+
+    const upload = await quick.fs.uploadFile(file);
+    const reportUrl = upload?.files?.[0]?.fullUrl
+      || upload?.files?.[0]?.url
+      || upload?.file?.fullUrl
+      || upload?.file?.url
+      || upload?.fullUrl
+      || upload?.url
+      || (Array.isArray(upload) && (upload[0]?.fullUrl || upload[0]?.url));
+    if (!reportUrl) throw new Error(`File upload failed. Response shape: ${JSON.stringify(Object.keys(upload || {}))}`);
+
+
+    // Build Slack blocks
+    const tierEmoji = { monitor: '👁', consider: '💡', engage: '🤝', prioritize: '🚨' }[tier.id] || '📊';
+    const gmvLabels = { sub1m: '<$1M', '1m_10m': '$1M–$10M', '10m_50m': '$10M–$50M', '50m_250m': '$50M–$250M', '250m_plus': '$250M+' };
+    const stageLabels = { awareness: 'Awareness', discovery: 'Discovery', evaluation: 'Evaluation', proposal: 'Proposal', negotiation: 'Negotiation', closed: 'Closed' };
+
+    const blocks = [
+      { type: 'header', text: { type: 'plain_text', text: `${tierEmoji} FCTO Signal — ${a.account_name || 'Unknown Account'}` } },
+      {
+        type: 'section',
+        fields: [
+          { type: 'mrkdwn', text: `*Score:* ${scored.total}/100` },
+          { type: 'mrkdwn', text: `*Tier:* ${tier.label}` },
+          { type: 'mrkdwn', text: `*Stage:* ${stageLabels[a.deal_stage] || a.deal_stage || '—'}` },
+          { type: 'mrkdwn', text: `*GMV:* ${gmvLabels[a.gmv_tier] || a.gmv_tier || '—'}` },
+          { type: 'mrkdwn', text: `*Platform:* ${a.platform || '—'}` },
+          { type: 'mrkdwn', text: `*Industry:* ${a.industry || '—'}` }
+        ]
+      },
+      ...(analysis?.rec_title ? [{ type: 'section', text: { type: 'mrkdwn', text: `*Recommendation:* ${analysis.rec_title}` } }] : []),
+      ...(analysis?.rec_actions?.length ? [{
+        type: 'section',
+        text: { type: 'mrkdwn', text: `*Next Steps:*\n${analysis.rec_actions.map((x, i) => `${i + 1}. ${x}`).join('\n')}` }
+      }] : []),
+      ...(analysis?.signals?.length ? [{
+        type: 'section',
+        text: { type: 'mrkdwn', text: `*Signals:*\n${analysis.signals.map(x => `• ${x}`).join('\n')}` }
+      }] : []),
+      { type: 'divider' },
+      {
+        type: 'actions',
+        elements: [{ type: 'button', text: { type: 'plain_text', text: '📄 Open Full Report' }, url: reportUrl, style: 'primary' }]
+      },
+      ...(assessor ? [{ type: 'context', elements: [{ type: 'mrkdwn', text: `Assessed by ${assessor.fullName || assessor.email}${assessor.slackHandle ? ` · @${assessor.slackHandle}` : ''}` }] }] : [])
+    ];
+
+    await quick.slack.sendMessage('U06B219E8MC', `FCTO Signal report: ${a.account_name || 'Unknown Account'} — ${scored.total}/100`, { blocks });
+    toast('Report sent to your Slack!', 'success');
+  } catch (e) {
+    toast('Failed to send: ' + e.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '📨 Send to Slack'; }
+  }
+}
+
+function buildReportHTML() {
+  const { scored, tier, analysis, answers: a } = aiResult;
+  const sf = aiResult.sfRawData || sfRawData;
+  const now = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const tierColors = { monitor: '#6b7280', consider: '#d97706', engage: '#ea580c', prioritize: '#dc2626' };
+  const tierBg = { monitor: '#f3f4f6', consider: '#fffbeb', engage: '#fff7ed', prioritize: '#fef2f2' };
+  const color = tierColors[tier.id];
+
+  const dimRows = Object.entries(scored.dims).map(([k, v]) => {
+    const c = v <= 30 ? '#22c55e' : v <= 55 ? '#f59e0b' : v <= 75 ? '#f97316' : '#ef4444';
+    const lbl = v <= 30 ? 'Low' : v <= 55 ? 'Moderate' : v <= 75 ? 'High' : 'Critical';
+    return `<tr>
+      <td style="padding:8px 12px;font-size:13px">${DIM_LABELS[k]}</td>
+      <td style="padding:8px 12px;width:50%"><div style="background:#f3f4f6;border-radius:4px;height:8px"><div style="background:${c};border-radius:4px;height:8px;width:${v}%"></div></div></td>
+      <td style="padding:8px 12px;font-size:12px;font-weight:700;color:${c};white-space:nowrap">${v} — ${lbl}</td>
+    </tr>`;
+  }).join('');
+
+  const section = (icon, title, items) => !items?.length ? '' : `
+    <div style="margin-bottom:20px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px">${icon} ${title}</div>
+      ${items.map(i => `<div style="font-size:13px;color:#374151;padding:8px 12px;border-left:3px solid #e5e7eb;border-radius:0 6px 6px 0;background:#f9fafb;margin-bottom:6px;line-height:1.5">${i}</div>`).join('')}
+    </div>`;
+
+  const gmvLabels = { sub1m: '<$1M', '1m_10m': '$1M–$10M', '10m_50m': '$10M–$50M', '50m_250m': '$50M–$250M', '250m_plus': '$250M+' };
+
+  return `<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FCTO Signal — ${a.account_name || 'Report'}</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Inter',sans-serif;background:#f9fafb;color:#111827;padding:40px 24px;max-width:800px;margin:0 auto}
+.header{background:#fff;border-radius:12px;padding:24px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:16px}
+.card{background:#fff;border-radius:12px;padding:24px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:16px}
+table{width:100%;border-collapse:collapse}td{vertical-align:middle}
+@media print{body{background:#fff;padding:0}@page{margin:20mm}}
+</style></head><body>
+<div class="header">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
+    <div>
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;margin-bottom:6px">⚡ FCTO Signal Report</div>
+      <div style="font-size:24px;font-weight:800">${a.account_name || 'Unknown Account'}</div>
+      <div style="font-size:13px;color:#6b7280;margin-top:4px">Generated ${now}</div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:48px;font-weight:800;color:${color};line-height:1">${scored.total}</div>
+      <div style="font-size:12px;color:#6b7280">/ 100</div>
+      <div style="font-size:14px;font-weight:700;color:${color};margin-top:4px">${tier.label}</div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px;padding-top:16px;border-top:1px solid #e5e7eb">
+    ${[
+      ['Industry', a.industry || '—'],
+      ['GMV', gmvLabels[a.gmv_tier] || '—'],
+      ['Stage', a.deal_stage || '—'],
+      ['Platform', a.platform || '—'],
+      ['Geo', a.geo_scope || '—'],
+      ['Channels', (a.channels || []).join(', ') || 'D2C']
+    ].map(([l,v]) => `<div><div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#6b7280">${l}</div><div style="font-size:13px;font-weight:600;margin-top:2px">${v}</div></div>`).join('')}
+  </div>
+</div>
+
+<div class="card" style="background:${tierBg[tier.id]};border:1.5px solid ${color}">
+  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:${color};margin-bottom:8px">FCTO Involvement Rationale</div>
+  <div style="font-size:15px;line-height:1.7;color:#374151;margin-bottom:12px">${analysis?.rationale || tier.desc}</div>
+  ${analysis?.rec_actions?.length ? `
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:${color};margin-bottom:8px;padding-top:12px;border-top:1px solid rgba(0,0,0,.08)">Recommended Next Steps</div>
+    <ol style="padding-left:18px">${analysis.rec_actions.map(x => `<li style="font-size:13px;color:#374151;padding:3px 0">${x}</li>`).join('')}</ol>` : ''}
+</div>
+
+<div class="card">
+  <div style="font-size:14px;font-weight:700;margin-bottom:12px">Dimension Breakdown</div>
+  <table>${dimRows}</table>
+</div>
+
+${analysis ? `<div class="card">
+  <div style="font-size:14px;font-weight:700;margin-bottom:16px">AI Analysis</div>
+  ${section('📈', 'Signals Driving the Score', analysis.signals)}
+  ${section('⚠️', 'Key Risks & Watch Points', analysis.risks)}
+  ${section('🎯', 'FCTO Action Recommendations', analysis.actions)}
+</div>` : ''}
+
+${sf?.opportunity_description || sf?.account_description ? `<div class="card">
+  <div style="font-size:14px;font-weight:700;margin-bottom:12px">Supporting Context</div>
+  ${sf.opportunity_description ? `<div style="font-size:12px;color:#6b7280;line-height:1.6;margin-bottom:12px;white-space:pre-wrap">${sf.opportunity_description}</div>` : ''}
+  ${sf.account_description ? `<div style="font-size:12px;color:#6b7280;line-height:1.6;white-space:pre-wrap">${sf.account_description}</div>` : ''}
+</div>` : ''}
+
+<div style="text-align:center;font-size:11px;color:#9ca3af;margin-top:8px">FCTO Signal · fcto-signal.quick.shopify.io</div>
+</body></html>`;
+}
+
+// ─── PORTFOLIO ────────────────────────────────────────────────────────────────
+async function saveToPortfolio() {
+  if (!aiResult) return;
+  showLoading('Saving...');
+  try {
+    await quick.db.collection('fcto_signal_portfolio').create({
+      account_name: aiResult.answers.account_name || 'Unknown',
+      industry: aiResult.answers.industry || '',
+      gmv_tier: aiResult.answers.gmv_tier || '',
+      deal_stage: aiResult.answers.deal_stage || '',
+      score: aiResult.scored.total,
+      tier: aiResult.tier.id,
+      dims: aiResult.scored.dims,
+      answers: aiResult.answers,
+      analysis: aiResult.analysis,
+      sf_data: aiResult.sfRawData || null,
+      saved_at: new Date().toISOString()
+    });
+    hideLoading();
+    toast('Saved to portfolio!', 'success');
+  } catch (e) {
+    hideLoading();
+    toast('Failed to save: ' + e.message, 'error');
+  }
+}
+
+async function showPortfolio() {
+  showPage('portfolio-page');
+  showLoading('Loading portfolio...');
+  try {
+    savedPortfolio = (await quick.db.collection('fcto_signal_portfolio').find())
+      .sort((a, b) => new Date(b.saved_at) - new Date(a.saved_at));
+    hideLoading();
+    renderPortfolio(savedPortfolio);
+  } catch (e) {
+    hideLoading();
+    toast('Failed to load portfolio.', 'error');
+    renderPortfolio([]);
+  }
+}
+
+function renderPortfolio(rows) {
+  const gmvMap = { sub1m: '<$1M', '1m_10m': '$1M–$10M', '10m_50m': '$10M–$50M', '50m_250m': '$50M–$250M', '250m_plus': '$250M+' };
+  const stageMap = { awareness: 'Awareness', discovery: 'Discovery', evaluation: 'Evaluation', proposal: 'Proposal', negotiation: 'Negotiation', closed: 'Closed' };
+  const total = rows.length;
+  const prioritize = rows.filter(r => r.tier === 'prioritize').length;
+  const avgScore = total ? Math.round(rows.reduce((s, r) => s + r.score, 0) / total) : 0;
+  const concerns = {};
+  rows.forEach(r => { (r.answers?.objections || []).forEach(o => { concerns[o] = (concerns[o] || 0) + 1; }); });
+  const topConcern = Object.entries(concerns).sort((a, b) => b[1] - a[1])[0]?.[0]?.replace(/_/g, ' ') || '—';
+  const gmvRef = { sub1m: 500e3, '1m_10m': 5.5e6, '10m_50m': 30e6, '50m_250m': 150e6, '250m_plus': 500e6 };
+  const pipeline = rows.reduce((s, r) => s + (gmvRef[r.gmv_tier] || 0), 0);
+  const pipelineStr = pipeline >= 1e9 ? `$${(pipeline/1e9).toFixed(1)}B` : pipeline >= 1e6 ? `$${(pipeline/1e6).toFixed(0)}M` : `$${(pipeline/1e3).toFixed(0)}K`;
+
+  document.getElementById('portfolio-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-value">${total}</div><div class="stat-label">Total Assessed</div></div>
+    <div class="stat-card"><div class="stat-value">${prioritize}</div><div class="stat-label">Prioritize</div></div>
+    <div class="stat-card"><div class="stat-value">${avgScore || '—'}</div><div class="stat-label">Avg Score</div></div>
+    <div class="stat-card"><div class="stat-value" style="font-size:16px">${pipelineStr}</div><div class="stat-label">Pipeline GMV</div></div>
+    <div class="stat-card"><div class="stat-value" style="font-size:14px">${topConcern}</div><div class="stat-label">Top Concern</div></div>`;
+
+  if (!rows.length) {
+    document.getElementById('portfolio-table-wrap').innerHTML = `
+      <div class="empty-state"><div class="icon">📋</div><h3>No assessments yet</h3><p>Complete a scoring wizard and save to build your portfolio.</p></div>`;
+    return;
+  }
+
+  let t = `<table class="portfolio-table"><thead><tr>
+    <th data-action="sort-portfolio" data-sort-key="account_name">Account ↕</th>
+    <th data-action="sort-portfolio" data-sort-key="industry">Industry ↕</th>
+    <th data-action="sort-portfolio" data-sort-key="gmv_tier">GMV ↕</th>
+    <th data-action="sort-portfolio" data-sort-key="deal_stage">Stage ↕</th>
+    <th data-action="sort-portfolio" data-sort-key="score">Score ↕</th>
+    <th>Tier</th>
+    <th data-action="sort-portfolio" data-sort-key="saved_at">Date ↕</th>
+  </tr></thead><tbody>`;
+
+  for (const row of rows) {
+    const tc = row.tier || 'monitor';
+    const sfFlag = row.sf_data ? ' <span class="sf-badge">SF</span>' : '';
+    t += `<tr data-action="view-portfolio-row" data-row-id="${row.id}">
+      <td><strong>${row.account_name || '—'}${sfFlag}</strong></td>
+      <td>${row.industry || '—'}</td>
+      <td>${gmvMap[row.gmv_tier] || '—'}</td>
+      <td>${stageMap[row.deal_stage] || '—'}</td>
+      <td><span class="score-pill ${tc}">${row.score}</span></td>
+      <td><span class="score-pill ${tc}">${tc.charAt(0).toUpperCase() + tc.slice(1)}</span></td>
+      <td>${new Date(row.saved_at).toLocaleDateString()}</td>
+    </tr>`;
+  }
+  t += '</tbody></table>';
+  document.getElementById('portfolio-table-wrap').innerHTML = t;
+}
+
+let portfolioSortKey = 'saved_at', portfolioSortAsc = false;
+function sortPortfolio(key) {
+  if (portfolioSortKey === key) portfolioSortAsc = !portfolioSortAsc;
+  else { portfolioSortKey = key; portfolioSortAsc = true; }
+  const sorted = [...savedPortfolio].sort((a, b) => {
+    const va = a[key] ?? '', vb = b[key] ?? '';
+    const cmp = typeof va === 'number' ? va - vb : String(va).localeCompare(String(vb));
+    return portfolioSortAsc ? cmp : -cmp;
+  });
+  renderPortfolio(sorted);
+}
+
+function viewPortfolioRow(id) {
+  const row = savedPortfolio.find(r => r.id === id);
+  if (!row) return;
+  sfRawData = row.sf_data || null;
+  aiResult = { scored: { total: row.score, dims: row.dims }, tier: getTier(row.score), analysis: row.analysis, answers: row.answers, sfRawData: row.sf_data };
+  renderResults(aiResult);
+  showPage('results-page');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+function fmtCurrency(v) {
+  const n = parseFloat(v);
+  if (isNaN(n)) return v;
+  return n >= 1e9 ? `$${(n/1e9).toFixed(1)}B` : n >= 1e6 ? `$${(n/1e6).toFixed(1)}M` : n >= 1e3 ? `$${(n/1e3).toFixed(0)}K` : `$${n}`;
+}
+function fmtNumber(v) { const n = parseInt(v); return isNaN(n) ? v : n.toLocaleString(); }
+
+// ─── EVENT DELEGATION ────────────────────────────────────────────────────────
+document.addEventListener('click', function(e) {
+  const el = e.target.closest('[data-action]');
+  if (!el) return;
+  const action = el.dataset.action;
+  if (action === 'start-mode')          { startMode(el.dataset.mode); return; }
+  if (action === 'show-portfolio')      { showPortfolio(); return; }
+  if (action === 'restart-wizard')      { restartWizard(); return; }
+  if (action === 'back-to-mode-select') { backToModeSelect(); return; }
+  if (action === 'wizard-back')         { wizardBack(); return; }
+  if (action === 'wizard-next')         { wizardNext(); return; }
+  if (action === 'wizard-skip')         { wizardSkip(); return; }
+  if (action === 'load-sf')             { loadFromSalesforce(); return; }
+  if (action === 'open-modal')          { openModal(); return; }
+  if (action === 'close-modal')         { closeModal(); return; }
+  if (action === 'save-portfolio')      { saveToPortfolio(); return; }
+  if (action === 'sort-portfolio')      { sortPortfolio(el.dataset.sortKey); return; }
+  if (action === 'view-portfolio-row')  { viewPortfolioRow(el.dataset.rowId); return; }
+  if (action === 'radio')               { selectRadio(el.dataset.field, el.dataset.value, el); return; }
+  if (action === 'multi')               { toggleMulti(el.dataset.field, el.dataset.value, el); return; }
+  if (action === 'expand-action')       { expandAction(parseInt(el.dataset.idx, 10)); return; }
+  if (action === 'edit-answers')        { showPage('wizard-page'); renderStep(); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+  if (action === 'action-report')       { actionReport(); return; }
+  if (action === 'open-feedback')       { openFeedback(); return; }
+  if (action === 'close-feedback')      { closeFeedback(); return; }
+  if (action === 'send-feedback')       { sendFeedback(); return; }
+  if (el.dataset.feedbackType) {
+    feedbackType = el.dataset.feedbackType;
+    document.querySelectorAll('.feedback-type-btn').forEach(b => b.classList.toggle('active', b.dataset.feedbackType === feedbackType));
+    return;
+  }
+});
+
+// Dismiss modal by clicking overlay background
+document.getElementById('modal-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// Input delegation for text/textarea fields
+document.addEventListener('input', function(e) {
+  const field = e.target.dataset.field;
+  if (field) setAnswer(field, e.target.value);
+});
+
+// Enter key on SF URL input
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && e.target.id === 'sf-url-input') loadFromSalesforce();
+});
+
+function showPage(id) { document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+function showLoading(text='Loading...') { document.getElementById('loading-text').textContent = text; document.getElementById('loading-overlay').classList.add('open'); }
+function hideLoading() { document.getElementById('loading-overlay').classList.remove('open'); }
+function toast(msg, type='') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+function openModal() { document.getElementById('modal-overlay').classList.add('open'); }
+function closeModal(e) {
+  if (!e || e.target === document.getElementById('modal-overlay') || !e.target.closest('.modal'))
+    document.getElementById('modal-overlay').classList.remove('open');
+}
+
+// ─── FEEDBACK ─────────────────────────────────────────────────────────────────
+let feedbackType = 'feature';
+
+function openFeedback() {
+  feedbackType = 'feature';
+  document.querySelectorAll('.feedback-type-btn').forEach(b => b.classList.toggle('active', b.dataset.feedbackType === 'feature'));
+  document.getElementById('feedback-text').value = '';
+  document.getElementById('feedback-overlay').classList.add('open');
+}
+function closeFeedback() { document.getElementById('feedback-overlay').classList.remove('open'); }
+
+async function sendFeedback() {
+  const text = document.getElementById('feedback-text').value.trim();
+  if (!text) { toast('Please describe the feedback before sending.', 'error'); return; }
+  const btn = document.querySelector('[data-action="send-feedback"]');
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+  try {
+    const user = currentUser || await quick.id.waitForUser().catch(() => null);
+    const typeLabel = feedbackType === 'bug' ? '🐛 Bug Report' : '✨ Feature Request';
+    const from = user ? `${user.fullName || user.email}${user.slackHandle ? ` (@${user.slackHandle})` : ''}` : 'Unknown user';
+    await quick.slack.sendMessage('U06B219E8MC', `FCTO Signal feedback`, {
+      blocks: [
+        { type: 'header', text: { type: 'plain_text', text: `FCTO Signal — ${typeLabel}` } },
+        { type: 'section', text: { type: 'mrkdwn', text: text } },
+        { type: 'context', elements: [{ type: 'mrkdwn', text: `From: ${from}` }] }
+      ]
+    });
+    closeFeedback();
+    toast('Feedback sent — thank you!', 'success');
+  } catch (e) {
+    toast('Failed to send feedback: ' + e.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Send'; }
+  }
+}
+
+document.getElementById('feedback-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeFeedback();
+});
+
+// ─── USAGE TRACKING ───────────────────────────────────────────────────────────
+quick.id.waitForUser().then(user => {
+  currentUser = user;
+  quick.db.collection('usage_log').create({
+    email: user.email,
+    name: user.fullName || '',
+    slack_handle: user.slackHandle || '',
+    slack_id: user.slackId || '',
+    visited_at: new Date().toISOString()
+  }).catch(() => {});
+}).catch(() => {});
+</script>
+</body>
+</html>
