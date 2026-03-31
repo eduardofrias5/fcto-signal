@@ -12,4 +12,13 @@ NEXT="v${MAJOR}.${NEXT_MINOR}"
 sed -i '' "s/${CURRENT}/${NEXT}/g" index.html
 
 echo "Version: ${CURRENT} → ${NEXT}"
+
+# Deploy to Quick
 quick deploy . fcto-signal --force
+
+# Commit and push to GitHub
+git add index.html
+git commit -m "Release ${NEXT}"
+git push origin main
+
+echo "GitHub: pushed ${NEXT} to origin/main"
