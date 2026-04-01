@@ -26,6 +26,21 @@
 body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5}
 body.fcto-mode{--accent:var(--indigo);--accent-light:var(--indigo-light);--accent-mid:var(--indigo-mid)}
 
+/* CLOUDDO BANNER */
+#clouddo-banner{
+  background:#fffbeb;border-bottom:1px solid #fde68a;
+  padding:10px 28px;display:flex;align-items:center;gap:10px;flex-wrap:wrap
+}
+.clouddo-banner-icon{font-size:15px;flex-shrink:0}
+.clouddo-banner-text{font-size:13px;font-weight:500;color:#92400e;flex:1;min-width:0}
+.clouddo-banner-btn{
+  font-size:12px;font-weight:700;padding:5px 14px;border-radius:99px;
+  border:1.5px solid #d97706;background:#d97706;color:#fff;
+  cursor:pointer;white-space:nowrap;transition:opacity .15s;font-family:inherit;flex-shrink:0;
+  text-decoration:none;display:inline-block
+}
+.clouddo-banner-btn:hover{opacity:.85}
+
 /* HEADER */
 #app-header{
   position:sticky;top:0;z-index:100;
@@ -318,10 +333,17 @@ textarea{min-height:120px;resize:vertical}
 </head>
 <body>
 
+<!-- CLOUDDO BANNER -->
+<div id="clouddo-banner">
+  <span class="clouddo-banner-icon">⚠️</span>
+  <span class="clouddo-banner-text">Before running any analysis, please claim a CloudDo permit.</span>
+  <a class="clouddo-banner-btn" href="https://clouddo.shopify.io/permits?claim=sdp-pii" target="_blank" rel="noopener">Claim Permit →</a>
+</div>
+
 <!-- HEADER -->
 <header id="app-header">
   <span class="header-title">⚡ FCTO Signal</span>
-  <span class="version-badge">v2.0</span>
+  <span class="version-badge">v2.1</span>
   <span id="mode-indicator" class="mode-indicator" style="display:none"></span>
   <div class="header-spacer"></div>
   <button class="header-btn" id="header-portfolio-btn" style="display:none" data-action="show-portfolio">Portfolio</button>
