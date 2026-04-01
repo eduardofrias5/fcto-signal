@@ -377,7 +377,7 @@ textarea{min-height:120px;resize:vertical}
 <!-- HEADER -->
 <header id="app-header">
   <span class="header-title">⚡ FCTO Signal</span>
-  <span class="version-badge">v2.4</span>
+  <span class="version-badge">v2.5</span>
   <span id="mode-indicator" class="mode-indicator" style="display:none"></span>
   <div class="header-spacer"></div>
   <button class="header-btn" id="header-portfolio-btn" style="display:none" data-action="show-portfolio">Portfolio</button>
@@ -2134,6 +2134,8 @@ function viewPortfolioRow(id) {
 }
 
 // ─── SF WRITE-BACK ───────────────────────────────────────────────────────────
+let pendingSfWriteback = null; // { sfOppUrl, description, subject }
+
 function openSfWriteback() {
   if (!aiResult) return;
   const sf = aiResult.sfRawData || sfRawData;
@@ -2144,7 +2146,6 @@ function openSfWriteback() {
     return;
   }
 
-  // Extract SF instance URL from the original pasted URL
   let instanceUrl = 'https://shopify.lightning.force.com';
   try { if (a._sf_url) instanceUrl = new URL(a._sf_url).origin; } catch(e) {}
 
@@ -2153,11 +2154,10 @@ function openSfWriteback() {
   const gmvLabels = { sub1m: '<$1M', '1m_10m': '$1M–$10M', '10m_50m': '$10M–$50M', '50m_250m': '$50M–$250M', '250m_plus': '$250M+' };
 
   const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  const todayISO = new Date().toISOString().split('T')[0];
 
   const subject = `FCTO Signal — ${a.account_name || 'Account'}: ${scored.total}/100 (${tier.label})`;
 
-  const descLines = [
+  const description = [
     `FCTO Signal Score: ${scored.total}/100`,
     `Tier: ${tierEmoji} ${tier.label}`,
     ``,
@@ -2168,35 +2168,27 @@ function openSfWriteback() {
     ``,
     `Industry: ${a.industry || '—'} | Platform: ${a.platform || '—'} | GMV: ${gmvLabels[a.gmv_tier] || '—'}`,
     `Assessed: ${today} · Source: fcto-signal.quick.shopify.io`
-  ];
-  const description = descLines.join('\n');
+  ].join('\n');
 
-  // Build Salesforce Lightning "New Task" URL with pre-filled fields
-  // (user is already authenticated to SF — they just click Save)
-  const sfTaskUrl = `${instanceUrl}/lightning/r/Task/new?defaultFieldValues=` + [
-    `Subject=${encodeURIComponent(subject)}`,
-    `WhatId=${sf.opportunity_id}`,
-    `Status=Completed`,
-    `ActivityDate=${todayISO}`,
-    `Description=${encodeURIComponent(description)}`
-  ].join(',');
+  const sfOppUrl = `${instanceUrl}/lightning/r/Opportunity/${sf.opportunity_id}/view`;
+  pendingSfWriteback = { sfOppUrl, description, subject };
 
   const recordFields = [
-    sf.account_name       && ['Account',        sf.account_name],
-    sf.opportunity_name   && ['Opportunity',     sf.opportunity_name],
-                             ['Opportunity ID',  sf.opportunity_id],
-    sf.opportunity_stage_name && ['Stage',       sf.opportunity_stage_name],
-    sf.opportunity_owner  && ['Owner',           sf.opportunity_owner],
-    sf.close_date         && ['Close Date',      sf.close_date],
+    sf.account_name           && ['Account',        sf.account_name],
+    sf.opportunity_name       && ['Opportunity',     sf.opportunity_name],
+                                 ['Opportunity ID',  sf.opportunity_id],
+    sf.opportunity_stage_name && ['Stage',           sf.opportunity_stage_name],
+    sf.opportunity_owner      && ['Owner',           sf.opportunity_owner],
+    sf.close_date             && ['Close Date',      sf.close_date],
   ].filter(Boolean);
 
   document.getElementById('sf-writeback-body').innerHTML = `
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.6">
-      Confirm the opportunity below. Clicking <strong>Open in Salesforce</strong> will open a pre-filled Completed Activity — just click <strong>Save</strong> in Salesforce to log it against this opportunity.
+      Confirm the opportunity below, then click <strong>Copy &amp; Open Salesforce</strong>. The assessment summary will be copied to your clipboard — on the opportunity, click <strong>Log a Call</strong> and paste.
     </p>
 
     <div class="sf-wb-record">
-      <div class="sf-wb-record-title">🔗 Writing to this opportunity</div>
+      <div class="sf-wb-record-title">🔗 Logging against this opportunity</div>
       <div class="sf-wb-fields">
         ${recordFields.map(([l, v]) => `
           <div class="sf-wb-field">
@@ -2207,13 +2199,9 @@ function openSfWriteback() {
     </div>
 
     <div class="sf-wb-payload">
-      <div class="sf-wb-payload-title">Activity that will be logged</div>
+      <div class="sf-wb-payload-title">What will be copied to clipboard</div>
       <div class="sf-wb-row">
-        <span class="sf-wb-row-label">Type</span>
-        <span class="sf-wb-row-value">Completed Task</span>
-      </div>
-      <div class="sf-wb-row">
-        <span class="sf-wb-row-label">Subject</span>
+        <span class="sf-wb-row-label">Subject line</span>
         <span class="sf-wb-row-value" style="font-size:12px">${subject}</span>
       </div>
       <div class="sf-wb-row">
@@ -2225,21 +2213,30 @@ function openSfWriteback() {
         <span class="sf-wb-row-value">${today}</span>
       </div>
       <div class="sf-wb-row" style="flex-direction:column;gap:6px;align-items:flex-start">
-        <span class="sf-wb-row-label">Description</span>
+        <span class="sf-wb-row-label">Full description (preview)</span>
         <div class="sf-wb-desc">${description}</div>
       </div>
     </div>
 
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button class="btn btn-secondary" data-action="close-sf-writeback">Cancel</button>
-      <a class="btn btn-primary" href="${sfTaskUrl}" target="_blank" rel="noopener"
-         data-action="close-sf-writeback"
-         style="text-decoration:none;display:inline-flex;align-items:center;gap:6px">
-        Open in Salesforce →
-      </a>
+      <button class="btn btn-primary" data-action="confirm-sf-writeback">
+        Copy &amp; Open Salesforce →
+      </button>
     </div>`;
 
   document.getElementById('sf-writeback-overlay').classList.add('open');
+}
+
+async function confirmSfWriteback() {
+  if (!pendingSfWriteback) return;
+  const { sfOppUrl, description } = pendingSfWriteback;
+  pendingSfWriteback = null;
+
+  try { await navigator.clipboard.writeText(description); } catch(e) { /* clipboard blocked — SF still opens */ }
+  window.open(sfOppUrl, '_blank', 'noopener');
+  closeSfWriteback();
+  toast('Copied to clipboard. On the opportunity, click "Log a Call" and paste.', 'success');
 }
 
 function closeSfWriteback() {
@@ -2277,8 +2274,9 @@ document.addEventListener('click', function(e) {
   if (action === 'expand-action')       { expandAction(parseInt(el.dataset.idx, 10)); return; }
   if (action === 'edit-answers')        { showPage('wizard-page'); renderStep(); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
   if (action === 'action-report')       { actionReport(); return; }
-  if (action === 'open-sf-writeback')   { openSfWriteback(); return; }
+  if (action === 'open-sf-writeback')    { openSfWriteback(); return; }
   if (action === 'close-sf-writeback')  { closeSfWriteback(); return; }
+  if (action === 'confirm-sf-writeback'){ confirmSfWriteback(); return; }
   if (action === 'open-feedback')       { openFeedback(); return; }
   if (action === 'close-feedback')      { closeFeedback(); return; }
   if (action === 'send-feedback')       { sendFeedback(); return; }
