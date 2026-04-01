@@ -345,7 +345,24 @@ textarea{min-height:120px;resize:vertical}
 .btn-report{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600;padding:11px 22px;border-radius:var(--radius-sm);border:none;cursor:pointer;transition:all .15s;font-family:inherit;letter-spacing:-.01em}
 .btn-report.send-slack{background:#4a154b;color:#fff}
 .btn-report.send-slack:hover{background:#611f69}
+.btn-report.sf-writeback{background:#047857;color:#fff}
+.btn-report.sf-writeback:hover{background:#065f46}
 .btn-report:disabled{opacity:.5;cursor:not-allowed}
+
+/* SF WRITE-BACK MODAL */
+.sf-wb-record{background:#f0fdf9;border:1.5px solid #6ee7b7;border-radius:12px;padding:16px 20px;margin-bottom:20px}
+.sf-wb-record-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#047857;margin-bottom:12px}
+.sf-wb-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sf-wb-field{background:#fff;border-radius:8px;padding:9px 12px;border:1px solid #a7f3d0}
+.sf-wb-field-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#059669;margin-bottom:3px}
+.sf-wb-field-value{font-size:12px;font-weight:600;color:var(--text);word-break:break-word}
+.sf-wb-payload{background:var(--s50);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:20px}
+.sf-wb-payload-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:10px}
+.sf-wb-row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:6px 0;font-size:13px;border-bottom:1px solid var(--border)}
+.sf-wb-row:last-child{border-bottom:none}
+.sf-wb-row-label{color:var(--text-muted);font-weight:500;flex-shrink:0}
+.sf-wb-row-value{font-weight:600;color:var(--text);text-align:right;max-width:240px;word-break:break-word}
+.sf-wb-desc{background:#fff;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:11px;color:var(--text-muted);white-space:pre-wrap;line-height:1.6;max-height:130px;overflow-y:auto;margin-top:6px;font-family:inherit}
 </style>
 </head>
 <body>
@@ -360,7 +377,7 @@ textarea{min-height:120px;resize:vertical}
 <!-- HEADER -->
 <header id="app-header">
   <span class="header-title">⚡ FCTO Signal</span>
-  <span class="version-badge">v2.3</span>
+  <span class="version-badge">v2.4</span>
   <span id="mode-indicator" class="mode-indicator" style="display:none"></span>
   <div class="header-spacer"></div>
   <button class="header-btn" id="header-portfolio-btn" style="display:none" data-action="show-portfolio">Portfolio</button>
@@ -429,6 +446,17 @@ textarea{min-height:120px;resize:vertical}
       </div>
       <button class="btn btn-primary" style="width:100%;justify-content:center" data-action="send-feedback">Send</button>
     </div>
+  </div>
+</div>
+
+<!-- SF WRITE-BACK MODAL -->
+<div class="modal-overlay" id="sf-writeback-overlay">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-header">
+      <h3>Log Score to Salesforce</h3>
+      <button class="modal-close" data-action="close-sf-writeback">✕</button>
+    </div>
+    <div class="modal-body" id="sf-writeback-body"></div>
   </div>
 </div>
 
@@ -1075,7 +1103,7 @@ function selectRadio(id, value, el) {
 }
 
 function toggleMulti(id, value, el) {
-  if (!answers[id]) answers[id] = [];
+  if (!Array.isArray(answers[id])) answers[id] = [];
   const arr = answers[id];
   const idx = arr.indexOf(value);
   if (idx === -1) arr.push(value); else arr.splice(idx, 1);
@@ -1310,9 +1338,11 @@ ${JSON.stringify(acc, null, 2)}`;
 
     if (extracted.country || extracted.region) {
       const r = (extracted.region || '').toLowerCase();
-      mappings.geo_scope = r.includes('global') || r.includes('international') ? 'global'
-        : r.includes('emea') || r.includes('apac') || r.includes('latam') ? 'regional'
-        : 'single';
+      const geoArr = [];
+      if (r.includes('namer') || r.includes('amer') || r.includes('us') || r.includes('canada') || r.includes('north america') || r.includes('single') || (!r.includes('emea') && !r.includes('apac') && !r.includes('latam') && !r.includes('global') && !r.includes('international'))) geoArr.push('namer');
+      if (r.includes('emea') || r.includes('europe') || r.includes('global') || r.includes('international')) geoArr.push('emea');
+      if (r.includes('apac') || r.includes('asia') || r.includes('pacific') || r.includes('global') || r.includes('international')) geoArr.push('apac');
+      if (geoArr.length) mappings.geo_scope = geoArr;
     }
 
     Object.assign(answers, mappings);
@@ -1593,8 +1623,10 @@ function renderResults(result) {
     </div>`;
   }
 
+  const sfOppId = result.sfRawData?.opportunity_id || sfRawData?.opportunity_id;
   html += `<div class="report-action-row">
     <button class="btn-report" style="background:var(--s100);color:var(--text)" data-action="edit-answers">← Edit Answers</button>
+    ${sfOppId ? `<button class="btn-report sf-writeback" data-action="open-sf-writeback">💾 Log to Salesforce</button>` : ''}
     <button class="btn-report send-slack" data-action="action-report">📨 Send to Slack</button>
     ${appMode === 'fcto' ? `<button class="btn btn-primary" data-action="save-portfolio">Save to Portfolio</button>` : ''}
   </div>`;
@@ -1868,7 +1900,7 @@ async function actionReport() {
         type: 'actions',
         elements: [{ type: 'button', text: { type: 'plain_text', text: '📄 Open Full Report' }, url: reportUrl, style: 'primary' }]
       },
-      ...(assessor ? [{ type: 'context', elements: [{ type: 'mrkdwn', text: `Assessed by ${assessor.fullName || assessor.email}${assessor.slackHandle ? ` · @${assessor.slackHandle}` : ''}` }] }] : [])
+      ...(assessor ? [{ type: 'context', elements: [{ type: 'mrkdwn', text: `Assessed by ${assessor.fullName || assessor.email}` }] }] : [])
     ];
 
     const industryRouting = {
@@ -2101,6 +2133,119 @@ function viewPortfolioRow(id) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+// ─── SF WRITE-BACK ───────────────────────────────────────────────────────────
+function openSfWriteback() {
+  if (!aiResult) return;
+  const sf = aiResult.sfRawData || sfRawData;
+  const { scored, tier, analysis, answers: a } = aiResult;
+
+  if (!sf?.opportunity_id) {
+    toast('No Salesforce opportunity linked to this assessment.', 'error');
+    return;
+  }
+
+  // Extract SF instance URL from the original pasted URL
+  let instanceUrl = 'https://shopify.lightning.force.com';
+  try { if (a._sf_url) instanceUrl = new URL(a._sf_url).origin; } catch(e) {}
+
+  const tierEmoji = { monitor: '👁️', consider: '💡', engage: '🤝', prioritize: '🚨' }[tier.id] || '📊';
+  const tierColor = { monitor: 'var(--s500)', consider: 'var(--amber)', engage: 'var(--orange)', prioritize: 'var(--red)' }[tier.id] || 'var(--text)';
+  const gmvLabels = { sub1m: '<$1M', '1m_10m': '$1M–$10M', '10m_50m': '$10M–$50M', '50m_250m': '$50M–$250M', '250m_plus': '$250M+' };
+
+  const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const todayISO = new Date().toISOString().split('T')[0];
+
+  const subject = `FCTO Signal — ${a.account_name || 'Account'}: ${scored.total}/100 (${tier.label})`;
+
+  const descLines = [
+    `FCTO Signal Score: ${scored.total}/100`,
+    `Tier: ${tierEmoji} ${tier.label}`,
+    ``,
+    analysis?.rationale || tier.desc,
+    ``,
+    ...(analysis?.signals?.length ? [`Key signals:`, ...analysis.signals.map(s => `• ${s}`)] : []),
+    ...(analysis?.rec_actions?.length ? [``, `Recommended next steps:`, ...analysis.rec_actions.map((x, i) => `${i + 1}. ${x}`)] : []),
+    ``,
+    `Industry: ${a.industry || '—'} | Platform: ${a.platform || '—'} | GMV: ${gmvLabels[a.gmv_tier] || '—'}`,
+    `Assessed: ${today} · Source: fcto-signal.quick.shopify.io`
+  ];
+  const description = descLines.join('\n');
+
+  // Build Salesforce Lightning "New Task" URL with pre-filled fields
+  // (user is already authenticated to SF — they just click Save)
+  const sfTaskUrl = `${instanceUrl}/lightning/r/Task/new?defaultFieldValues=` + [
+    `Subject=${encodeURIComponent(subject)}`,
+    `WhatId=${sf.opportunity_id}`,
+    `Status=Completed`,
+    `ActivityDate=${todayISO}`,
+    `Description=${encodeURIComponent(description)}`
+  ].join(',');
+
+  const recordFields = [
+    sf.account_name       && ['Account',        sf.account_name],
+    sf.opportunity_name   && ['Opportunity',     sf.opportunity_name],
+                             ['Opportunity ID',  sf.opportunity_id],
+    sf.opportunity_stage_name && ['Stage',       sf.opportunity_stage_name],
+    sf.opportunity_owner  && ['Owner',           sf.opportunity_owner],
+    sf.close_date         && ['Close Date',      sf.close_date],
+  ].filter(Boolean);
+
+  document.getElementById('sf-writeback-body').innerHTML = `
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.6">
+      Confirm the opportunity below. Clicking <strong>Open in Salesforce</strong> will open a pre-filled Completed Activity — just click <strong>Save</strong> in Salesforce to log it against this opportunity.
+    </p>
+
+    <div class="sf-wb-record">
+      <div class="sf-wb-record-title">🔗 Writing to this opportunity</div>
+      <div class="sf-wb-fields">
+        ${recordFields.map(([l, v]) => `
+          <div class="sf-wb-field">
+            <div class="sf-wb-field-label">${l}</div>
+            <div class="sf-wb-field-value">${v}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <div class="sf-wb-payload">
+      <div class="sf-wb-payload-title">Activity that will be logged</div>
+      <div class="sf-wb-row">
+        <span class="sf-wb-row-label">Type</span>
+        <span class="sf-wb-row-value">Completed Task</span>
+      </div>
+      <div class="sf-wb-row">
+        <span class="sf-wb-row-label">Subject</span>
+        <span class="sf-wb-row-value" style="font-size:12px">${subject}</span>
+      </div>
+      <div class="sf-wb-row">
+        <span class="sf-wb-row-label">Score</span>
+        <span class="sf-wb-row-value" style="color:${tierColor}">${scored.total}/100 &nbsp;·&nbsp; ${tierEmoji} ${tier.label}</span>
+      </div>
+      <div class="sf-wb-row">
+        <span class="sf-wb-row-label">Date</span>
+        <span class="sf-wb-row-value">${today}</span>
+      </div>
+      <div class="sf-wb-row" style="flex-direction:column;gap:6px;align-items:flex-start">
+        <span class="sf-wb-row-label">Description</span>
+        <div class="sf-wb-desc">${description}</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-secondary" data-action="close-sf-writeback">Cancel</button>
+      <a class="btn btn-primary" href="${sfTaskUrl}" target="_blank" rel="noopener"
+         data-action="close-sf-writeback"
+         style="text-decoration:none;display:inline-flex;align-items:center;gap:6px">
+        Open in Salesforce →
+      </a>
+    </div>`;
+
+  document.getElementById('sf-writeback-overlay').classList.add('open');
+}
+
+function closeSfWriteback() {
+  document.getElementById('sf-writeback-overlay').classList.remove('open');
+}
+
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 function fmtCurrency(v) {
   const n = parseFloat(v);
@@ -2132,6 +2277,8 @@ document.addEventListener('click', function(e) {
   if (action === 'expand-action')       { expandAction(parseInt(el.dataset.idx, 10)); return; }
   if (action === 'edit-answers')        { showPage('wizard-page'); renderStep(); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
   if (action === 'action-report')       { actionReport(); return; }
+  if (action === 'open-sf-writeback')   { openSfWriteback(); return; }
+  if (action === 'close-sf-writeback')  { closeSfWriteback(); return; }
   if (action === 'open-feedback')       { openFeedback(); return; }
   if (action === 'close-feedback')      { closeFeedback(); return; }
   if (action === 'send-feedback')       { sendFeedback(); return; }
@@ -2217,6 +2364,10 @@ async function sendFeedback() {
 
 document.getElementById('feedback-overlay').addEventListener('click', function(e) {
   if (e.target === this) closeFeedback();
+});
+
+document.getElementById('sf-writeback-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeSfWriteback();
 });
 
 // ─── USAGE TRACKING ───────────────────────────────────────────────────────────
