@@ -135,6 +135,28 @@ body.fcto-mode{--accent:var(--indigo);--accent-light:var(--indigo-light);--accen
 .field-label{font-size:14px;font-weight:600;margin-bottom:10px;display:block;letter-spacing:-.01em}
 .field-label .required{color:var(--red);margin-left:2px}
 .field.error .field-label{color:var(--red)}
+.tooltip-wrap{position:relative;display:inline-flex;align-items:center;gap:5px}
+.tooltip-icon{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:15px;height:15px;border-radius:50%;
+  background:var(--s200);color:var(--s500);
+  font-size:9px;font-weight:700;cursor:default;flex-shrink:0;
+  transition:background .15s
+}
+.tooltip-icon:hover{background:var(--s400);color:#fff}
+.tooltip-wrap .tooltip-icon::after{
+  content:attr(data-tip);
+  position:absolute;bottom:calc(100% + 8px);left:0;
+  background:#1e293b;color:#fff;
+  font-size:12px;font-weight:400;line-height:1.55;
+  padding:10px 13px;border-radius:8px;
+  width:270px;white-space:normal;
+  pointer-events:none;opacity:0;
+  transition:opacity .15s;z-index:300;
+  box-shadow:0 4px 16px rgba(0,0,0,.2);
+  letter-spacing:0
+}
+.tooltip-wrap .tooltip-icon:hover::after{opacity:1}
 .field.error .option-card,.field.error input,.field.error textarea{border-color:var(--red)!important}
 input[type=text],textarea,select{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:inherit;font-size:14px;color:var(--text);outline:none;transition:all .15s;background:#fff}
 input[type=text]:focus,textarea:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 10%,transparent)}
@@ -343,7 +365,7 @@ textarea{min-height:120px;resize:vertical}
 <!-- HEADER -->
 <header id="app-header">
   <span class="header-title">⚡ FCTO Signal</span>
-  <span class="version-badge">v2.1</span>
+  <span class="version-badge">v2.2</span>
   <span id="mode-indicator" class="mode-indicator" style="display:none"></span>
   <div class="header-spacer"></div>
   <button class="header-btn" id="header-portfolio-btn" style="display:none" data-action="show-portfolio">Portfolio</button>
@@ -489,6 +511,7 @@ const WIZARD_STEPS = [
       { id: 'account_name', label: 'Account Name', type: 'text', required: true, placeholder: 'e.g. Acme Corp' },
       {
         id: 'industry', label: 'Industry', type: 'radio', required: true, cols: 3,
+        tooltip: 'Vertical shapes technical complexity and regulatory constraints. B2B, healthcare, and automotive deals typically require deeper FCTO involvement.',
         options: [
           { value: 'apparel', label: 'Apparel / Fashion' },
           { value: 'beauty', label: 'Beauty / Personal Care' },
@@ -505,6 +528,7 @@ const WIZARD_STEPS = [
       },
       {
         id: 'gmv_tier', label: 'Annual GMV Tier', type: 'radio', required: true, cols: 3,
+        tooltip: 'Deal size is the primary threshold for FCTO deployment. Higher GMV deals justify deeper time investment and peer-level executive engagement.',
         options: [
           { value: 'sub1m', label: '< $1M' },
           { value: '1m_10m', label: '$1M – $10M' },
@@ -515,6 +539,7 @@ const WIZARD_STEPS = [
       },
       {
         id: 'deal_stage', label: 'Deal Stage', type: 'radio', required: true, cols: 3,
+        tooltip: 'Stage determines what FCTO value looks like. Early stages benefit from thought leadership; late stages need technical validation and executive trust-building to accelerate close.',
         options: [
           { value: 'awareness', label: 'Awareness' },
           { value: 'discovery', label: 'Discovery' },
@@ -526,6 +551,7 @@ const WIZARD_STEPS = [
       },
       {
         id: 'channels', label: 'Channels in Scope', type: 'multi', required: false, cols: 2,
+        tooltip: 'Multi-channel scope — especially B2B, POS, and agentic commerce — significantly increases architectural complexity and the need for a CTO-level conversation.',
         options: [
           { value: 'd2c', label: 'D2C (Direct-to-Consumer)' },
           { value: 'b2b', label: 'B2B' },
@@ -535,11 +561,12 @@ const WIZARD_STEPS = [
         ]
       },
       {
-        id: 'geo_scope', label: 'Geographic Scope', type: 'radio', required: true, cols: 3,
+        id: 'geo_scope', label: 'Geographic Scope', type: 'multi', required: true, cols: 3,
+        tooltip: 'Multi-region deployments introduce data residency, localization, and compliance complexity — areas where FCTO credibility with engineering teams is most valuable.',
         options: [
-          { value: 'single', label: 'Single Market' },
-          { value: 'regional', label: 'Regional (2–5)' },
-          { value: 'global', label: 'Global (6+)' }
+          { value: 'namer', label: 'NAMER' },
+          { value: 'emea', label: 'EMEA' },
+          { value: 'apac', label: 'APAC' }
         ]
       }
     ]
@@ -550,6 +577,7 @@ const WIZARD_STEPS = [
     fields: [
       {
         id: 'contact_level', label: 'Highest-Level Contact Engaged', type: 'radio', required: true, cols: 2,
+        tooltip: 'The seniority of our highest contact determines whether we have executive access. FCTO engagement is most effective — and most needed — when the CTO or CIO is in the room, or when we need to get them there.',
         options: [
           { value: 'ic', label: 'Individual Contributor' },
           { value: 'manager', label: 'Manager / Director' },
@@ -562,6 +590,7 @@ const WIZARD_STEPS = [
       },
       {
         id: 'cto_involvement', label: 'CTO / CIO Involvement Level', type: 'radio', required: true, cols: 3,
+        tooltip: 'If the technical decision-maker is not yet engaged, the FCTO can open that door. If they are active, the FCTO provides peer-level credibility that a sales rep cannot.',
         options: [
           { value: 'none', label: 'Not Involved' },
           { value: 'aware', label: 'Aware' },
@@ -572,6 +601,7 @@ const WIZARD_STEPS = [
       },
       {
         id: 'decision_count', label: 'Decision-Maker Count', type: 'radio', required: true, cols: 2,
+        tooltip: 'Larger buying committees increase alignment complexity. An FCTO can navigate technical skeptics and build consensus across distributed stakeholders where a rep alone cannot.',
         options: [
           { value: '1_2', label: '1 – 2' },
           { value: '3_5', label: '3 – 5' },
@@ -581,6 +611,7 @@ const WIZARD_STEPS = [
       },
       {
         id: 'org_receptivity', label: 'Org Receptivity to Vendor Input', type: 'radio', required: true, cols: 3,
+        tooltip: 'A resistant org is where FCTO peer credibility matters most — a former CTO carries weight a salesperson cannot. An open org may close without it; this calibrates urgency of deployment.',
         options: [
           { value: 'very_resistant', label: 'Very Resistant' },
           { value: 'resistant', label: 'Somewhat Resistant' },
@@ -597,6 +628,7 @@ const WIZARD_STEPS = [
     fields: [
       {
         id: 'platform', label: 'Current Commerce Platform', type: 'radio', required: true, cols: 2,
+        tooltip: 'The current platform determines migration risk and conversation depth. Legacy enterprise stacks (SAP, Oracle, SFCC) require more FCTO involvement to de-risk the technical decision for the prospect.',
         options: [
           { value: 'shopify', label: 'Shopify (upgrade)' },
           { value: 'custom', label: 'Custom / Proprietary' },
@@ -611,6 +643,7 @@ const WIZARD_STEPS = [
       },
       {
         id: 'integration_complexity', label: 'Integration Complexity', type: 'radio', required: true, cols: 2,
+        tooltip: 'High integration counts signal architectural risk and longer cycles — exactly the territory where FCTO guidance builds confidence with prospect engineering teams.',
         options: [
           { value: 'minimal', label: 'Minimal (1–2 integrations)' },
           { value: 'moderate', label: 'Moderate (3–5)' },
@@ -621,6 +654,7 @@ const WIZARD_STEPS = [
       },
       {
         id: 'headless', label: 'Headless / Composable Architecture in Scope', type: 'radio', required: true, cols: 2,
+        tooltip: 'Headless and composable evaluations require a more sophisticated technical discussion. FCTO involvement validates the approach and de-risks the architectural decision for the prospect CTO.',
         options: [
           { value: 'no', label: 'No' },
           { value: 'evaluating', label: 'Evaluating' },
@@ -630,6 +664,7 @@ const WIZARD_STEPS = [
       },
       {
         id: 'urgency', label: 'Project Urgency / Timeline', type: 'radio', required: true, cols: 3,
+        tooltip: 'Tight timelines compress trust-building. An FCTO can accelerate the technical credibility needed to close on a compressed schedule — this signals how quickly to deploy.',
         options: [
           { value: 'none', label: 'No Urgency' },
           { value: '12plus', label: '12+ months' },
@@ -646,6 +681,7 @@ const WIZARD_STEPS = [
     fields: [
       {
         id: 'competitive_situation', label: 'Competitive Situation', type: 'radio', required: true, cols: 2,
+        tooltip: 'Active competitive situations benefit from FCTO engagement. A peer-level technical conversation can be decisive when the prospect is evaluating enterprise platforms side by side.',
         options: [
           { value: 'none', label: 'No Competition' },
           { value: 'aware', label: 'Aware of Some Competition' },
@@ -655,6 +691,7 @@ const WIZARD_STEPS = [
       },
       {
         id: 'primary_competitor', label: 'Primary Competitor', type: 'radio', required: false, cols: 2,
+        tooltip: 'Knowing the competitor shapes the FCTO angle. Each platform has specific architectural weaknesses the FCTO can address from a practitioner perspective — not a vendor one.',
         options: [
           { value: 'sfcc', label: 'Salesforce Commerce Cloud' },
           { value: 'magento', label: 'Adobe / Magento' },
@@ -670,6 +707,7 @@ const WIZARD_STEPS = [
       },
       {
         id: 'objections', label: 'Customer Objections Raised', type: 'multi', required: false, cols: 2,
+        tooltip: 'Active objections are where FCTO impact is most measurable. This tells us which specific concerns to arm the FCTO against — TCO, risk, executive skepticism, or feature gaps.',
         options: [
           { value: 'none', label: 'None yet' },
           { value: 'tco', label: 'Total Cost of Ownership' },
@@ -723,7 +761,8 @@ function score(a) {
   const platformComplexity = { shopify: 10, woocommerce: 40, bigcommerce: 40, custom: 90, magento: 80, sfcc: 85, sap: 90, oracle: 90, unknown: 75 };
   const integrationScore = { minimal: 10, moderate: 40, high: 70, very_high: 90, unknown: 75 };
   const headlessScore = { no: 0, evaluating: 30, partial: 60, full: 80 };
-  const geoMult = { single: 1.0, regional: 1.1, global: 1.2 };
+  const geoRegions = Array.isArray(a.geo_scope) ? a.geo_scope : (a.geo_scope ? [a.geo_scope] : []);
+  const geoMult = geoRegions.length >= 3 ? 1.2 : geoRegions.length === 2 ? 1.1 : 1.0;
   const channels = a.channels || [];
   let channelBonus = 0;
   if (channels.includes('agentic')) channelBonus += 15;
@@ -733,7 +772,7 @@ function score(a) {
     ((platformComplexity[a.platform] || 0) * 0.4 +
      (integrationScore[a.integration_complexity] || 0) * 0.3 +
      (headlessScore[a.headless] || 0) * 0.3) *
-    (geoMult[a.geo_scope] || 1.0) + channelBonus
+    geoMult + channelBonus
   ));
 
   const skepticismScore = { very_resistant: 100, resistant: 70, neutral: 50, open: 25, very_open: 10 };
@@ -744,7 +783,7 @@ function score(a) {
   dims.migration_risk = Math.min(100, Math.round(
     ((platformRisk[a.platform] || 0) * 0.5 +
      (urgencyScore[a.urgency] || 0) * 0.5) *
-    (geoMult[a.geo_scope] || 1.0)
+    geoMult
   ));
 
   const gmvScore = { sub1m: 10, '1m_10m': 30, '10m_50m': 55, '50m_250m': 75, '250m_plus': 95 };
@@ -992,9 +1031,13 @@ function renderWizardStep(step) {
 function renderField(field) {
   const val = answers[field.id];
   let html = `<div class="field" id="field-${field.id}">`;
-  html += `<label class="field-label">${field.label}${field.required ? '<span class="required">*</span>' : ''}`;
-  if (sfPrefilled[field.id]) html += `<span class="sf-badge">SF</span>`;
-  html += `</label>`;
+  const labelCore = `${field.label}${field.required ? '<span class="required">*</span>' : ''}`;
+  const sfBadge = sfPrefilled[field.id] ? `<span class="sf-badge">SF</span>` : '';
+  if (field.tooltip) {
+    html += `<label class="field-label"><span class="tooltip-wrap">${labelCore}<span class="tooltip-icon" data-tip="${field.tooltip}">i</span></span>${sfBadge}</label>`;
+  } else {
+    html += `<label class="field-label">${labelCore}${sfBadge}</label>`;
+  }
 
   if (field.type === 'text') {
     html += `<input type="text" id="input-${field.id}" value="${val || ''}" placeholder="${field.placeholder || ''}" data-field="${field.id}">`;
@@ -1448,7 +1491,7 @@ Account: ${a.account_name || 'Unknown'} | Industry: ${a.industry} | GMV: ${a.gmv
 Platform: ${a.platform} | Integrations: ${a.integration_complexity} | Headless: ${a.headless} | Urgency: ${a.urgency}
 Contact: ${a.contact_level} | CTO involvement: ${a.cto_involvement} | Org receptivity: ${a.org_receptivity}
 Competitive: ${a.competitive_situation} | Competitor: ${a.primary_competitor || 'none'} | Channels: ${(a.channels || []).join(', ') || 'D2C'}
-Objections: ${(a.objections || []).join(', ') || 'none'} | Geo: ${a.geo_scope}
+Objections: ${(a.objections || []).join(', ') || 'none'} | Geo: ${(Array.isArray(a.geo_scope) ? a.geo_scope : [a.geo_scope]).join(', ')}
 ${sfContext}
 Overall score: ${scored.total}/100 (${getTier(scored.total).label})
 Dimensions: ${dims}
@@ -1691,7 +1734,7 @@ Merchant profile:
 - Stage: ${a.deal_stage || '—'}
 - Integration complexity: ${a.integration_complexity || '—'}
 - Headless: ${a.headless || '—'}
-- Geo: ${a.geo_scope || '—'}
+- Geo: ${Array.isArray(a.geo_scope) ? a.geo_scope.join(', ') : (a.geo_scope || '—')}
 - Channels: ${(a.channels || []).join(', ') || 'D2C'}
 - Competitive: ${a.competitive_situation || '—'} (${a.primary_competitor || 'none'})
 - Objections: ${(a.objections || []).join(', ') || 'none'}
@@ -1796,7 +1839,20 @@ async function actionReport() {
       ...(assessor ? [{ type: 'context', elements: [{ type: 'mrkdwn', text: `Assessed by ${assessor.fullName || assessor.email}${assessor.slackHandle ? ` · @${assessor.slackHandle}` : ''}` }] }] : [])
     ];
 
-    await quick.slack.sendMessage('U06B219E8MC', `FCTO Signal report: ${a.account_name || 'Unknown Account'} — ${scored.total}/100`, { blocks });
+    const industryRouting = {
+      electronics: 'U087LMD92RM', home: 'U087LMD92RM', sporting: 'U087LMD92RM',
+      food: 'U08UKJS8G0J', automotive: 'U08UKJS8G0J', b2b_industrial: 'U08UKJS8G0J'
+    };
+    const routedUser = industryRouting[a.industry] || null;
+    const geoSelected = Array.isArray(a.geo_scope) ? a.geo_scope : (a.geo_scope ? [a.geo_scope] : []);
+    const emea_only = geoSelected.length === 1 && geoSelected[0] === 'emea';
+    const slackTargets = ['U06B219E8MC',
+      ...(routedUser ? [routedUser] : []),
+      ...(emea_only ? ['U07HS5ET204'] : [])
+    ];
+    for (const target of slackTargets) {
+      await quick.slack.sendMessage(target, `FCTO Signal report: ${a.account_name || 'Unknown Account'} — ${scored.total}/100`, { blocks });
+    }
     toast('Report sent to your Slack!', 'success');
   } catch (e) {
     toast('Failed to send: ' + e.message, 'error');
@@ -1861,7 +1917,7 @@ table{width:100%;border-collapse:collapse}td{vertical-align:middle}
       ['GMV', gmvLabels[a.gmv_tier] || '—'],
       ['Stage', a.deal_stage || '—'],
       ['Platform', a.platform || '—'],
-      ['Geo', a.geo_scope || '—'],
+      ['Geo', Array.isArray(a.geo_scope) ? a.geo_scope.join(', ') : (a.geo_scope || '—')],
       ['Channels', (a.channels || []).join(', ') || 'D2C']
     ].map(([l,v]) => `<div><div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#6b7280">${l}</div><div style="font-size:13px;font-weight:600;margin-top:2px">${v}</div></div>`).join('')}
   </div>
