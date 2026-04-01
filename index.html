@@ -377,7 +377,7 @@ textarea{min-height:120px;resize:vertical}
 <!-- HEADER -->
 <header id="app-header">
   <span class="header-title">⚡ FCTO Signal</span>
-  <span class="version-badge">v2.5</span>
+  <span class="version-badge">v2.6</span>
   <span id="mode-indicator" class="mode-indicator" style="display:none"></span>
   <div class="header-spacer"></div>
   <button class="header-btn" id="header-portfolio-btn" style="display:none" data-action="show-portfolio">Portfolio</button>
@@ -2218,6 +2218,9 @@ function openSfWriteback() {
       </div>
     </div>
 
+    <div style="font-size:11px;color:var(--text-muted);margin-bottom:14px;word-break:break-all">
+      Will open: <a href="${sfOppUrl}" target="_blank" rel="noopener" style="color:var(--green);text-decoration:underline">${sfOppUrl}</a>
+    </div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button class="btn btn-secondary" data-action="close-sf-writeback">Cancel</button>
       <button class="btn btn-primary" data-action="confirm-sf-writeback">
@@ -2228,13 +2231,17 @@ function openSfWriteback() {
   document.getElementById('sf-writeback-overlay').classList.add('open');
 }
 
-async function confirmSfWriteback() {
+function confirmSfWriteback() {
   if (!pendingSfWriteback) return;
   const { sfOppUrl, description } = pendingSfWriteback;
   pendingSfWriteback = null;
 
-  try { await navigator.clipboard.writeText(description); } catch(e) { /* clipboard blocked — SF still opens */ }
+  // Open SF first (must be synchronous within user gesture to avoid popup blockers)
   window.open(sfOppUrl, '_blank', 'noopener');
+
+  // Copy to clipboard fire-and-forget
+  navigator.clipboard.writeText(description).catch(() => {});
+
   closeSfWriteback();
   toast('Copied to clipboard. On the opportunity, click "Log a Call" and paste.', 'success');
 }
