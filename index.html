@@ -157,7 +157,8 @@ body.fcto-mode{--accent:var(--indigo);--accent-light:var(--indigo-light);--accen
   letter-spacing:0
 }
 .tooltip-wrap .tooltip-icon:hover::after{opacity:1}
-.field.error .option-card,.field.error input,.field.error textarea{border-color:var(--red)!important}
+.field.error .option-card,.field.error input,.field.error textarea,.field.error select{border-color:var(--red)!important}
+select.field-select{appearance:none;-webkit-appearance:none;padding-right:36px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2394a3b8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;cursor:pointer}
 input[type=text],textarea,select{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:inherit;font-size:14px;color:var(--text);outline:none;transition:all .15s;background:#fff}
 input[type=text]:focus,textarea:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 10%,transparent)}
 textarea{min-height:120px;resize:vertical}
@@ -174,12 +175,6 @@ textarea{min-height:120px;resize:vertical}
 .option-card.selected .option-indicator.checkbox{background:var(--accent);border-color:var(--accent)}
 .option-card.selected .option-indicator.checkbox::after{content:'✓';display:block;font-size:10px;color:#fff;text-align:center;line-height:12px}
 .option-text{flex:1}
-/* Pill layout — used when options > 4 */
-.options-grid.pills{display:flex;flex-wrap:wrap;gap:7px}
-.options-grid.pills .option-card{border-radius:99px;padding:7px 16px;gap:7px;font-size:13px}
-.options-grid.pills .option-indicator{width:8px;height:8px;border-width:1.5px;flex-shrink:0}
-.options-grid.pills .option-indicator.checkbox{border-radius:3px}
-.options-grid.pills .option-card.selected .option-indicator.checkbox::after{font-size:7px;line-height:8px}
 
 /* NAVIGATION */
 .nav-row{display:flex;justify-content:space-between;align-items:center;margin-top:28px}
@@ -365,7 +360,7 @@ textarea{min-height:120px;resize:vertical}
 <!-- HEADER -->
 <header id="app-header">
   <span class="header-title">⚡ FCTO Signal</span>
-  <span class="version-badge">v2.2</span>
+  <span class="version-badge">v2.3</span>
   <span id="mode-indicator" class="mode-indicator" style="display:none"></span>
   <div class="header-spacer"></div>
   <button class="header-btn" id="header-portfolio-btn" style="display:none" data-action="show-portfolio">Portfolio</button>
@@ -659,18 +654,18 @@ const WIZARD_STEPS = [
           { value: 'no', label: 'No' },
           { value: 'evaluating', label: 'Evaluating' },
           { value: 'partial', label: 'Yes – Partial' },
-          { value: 'full', label: 'Yes – Full' }
+          { value: 'full', label: 'Yes – Full' },
+          { value: 'unknown', label: "Don't know yet" }
         ]
       },
       {
         id: 'urgency', label: 'Project Urgency / Timeline', type: 'radio', required: true, cols: 3,
         tooltip: 'Tight timelines compress trust-building. An FCTO can accelerate the technical credibility needed to close on a compressed schedule — this signals how quickly to deploy.',
         options: [
-          { value: 'none', label: 'No Urgency' },
-          { value: '12plus', label: '12+ months' },
+          { value: 'sub6', label: '< 6 months' },
           { value: '6_12', label: '6–12 months' },
-          { value: '3_6', label: '3–6 months' },
-          { value: 'sub3', label: '< 3 months' }
+          { value: '12plus', label: '12+ months' },
+          { value: 'none', label: 'No Urgency' }
         ]
       }
     ]
@@ -706,7 +701,7 @@ const WIZARD_STEPS = [
         ]
       },
       {
-        id: 'objections', label: 'Customer Objections Raised', type: 'multi', required: false, cols: 2,
+        id: 'objections', label: 'Known Customer Objections', type: 'multi', required: false, cols: 2,
         tooltip: 'Active objections are where FCTO impact is most measurable. This tells us which specific concerns to arm the FCTO against — TCO, risk, executive skepticism, or feature gaps.',
         options: [
           { value: 'none', label: 'None yet' },
@@ -716,7 +711,8 @@ const WIZARD_STEPS = [
           { value: 'integration', label: 'Integration Concerns' },
           { value: 'org_change', label: 'Organizational Change' },
           { value: 'feature_gaps', label: 'Competitive Feature Gaps' },
-          { value: 'exec_skepticism', label: 'Executive Skepticism' }
+          { value: 'exec_skepticism', label: 'Executive Skepticism' },
+          { value: 'platform_loyalty', label: 'Fans of Other Platforms' }
         ]
       }
     ]
@@ -760,7 +756,7 @@ function score(a) {
 
   const platformComplexity = { shopify: 10, woocommerce: 40, bigcommerce: 40, custom: 90, magento: 80, sfcc: 85, sap: 90, oracle: 90, unknown: 75 };
   const integrationScore = { minimal: 10, moderate: 40, high: 70, very_high: 90, unknown: 75 };
-  const headlessScore = { no: 0, evaluating: 30, partial: 60, full: 80 };
+  const headlessScore = { no: 0, evaluating: 30, partial: 60, full: 80, unknown: 20 };
   const geoRegions = Array.isArray(a.geo_scope) ? a.geo_scope : (a.geo_scope ? [a.geo_scope] : []);
   const geoMult = geoRegions.length >= 3 ? 1.2 : geoRegions.length === 2 ? 1.1 : 1.0;
   const channels = a.channels || [];
@@ -779,7 +775,7 @@ function score(a) {
   dims.stakeholder_skepticism = skepticismScore[a.org_receptivity] || 50;
 
   const platformRisk = { shopify: 5, woocommerce: 40, bigcommerce: 40, custom: 95, magento: 80, sfcc: 85, sap: 95, oracle: 95, unknown: 70 };
-  const urgencyScore = { none: 10, '12plus': 20, '6_12': 50, '3_6': 75, sub3: 95 };
+  const urgencyScore = { sub6: 85, '6_12': 50, '12plus': 20, none: 10 };
   dims.migration_risk = Math.min(100, Math.round(
     ((platformRisk[a.platform] || 0) * 0.5 +
      (urgencyScore[a.urgency] || 0) * 0.5) *
@@ -1044,18 +1040,15 @@ function renderField(field) {
   } else if (field.type === 'textarea') {
     html += `<textarea id="input-${field.id}" placeholder="${field.placeholder || ''}" data-field="${field.id}">${val || ''}</textarea>`;
   } else if (field.type === 'radio') {
-    const usePills = field.options.length > 4;
-    html += `<div class="options-grid ${usePills ? 'pills' : `cols-${field.cols || 2}`}">`;
+    html += `<select class="field-select" data-field="${field.id}">`;
+    html += `<option value="">— Select —</option>`;
     for (const opt of field.options) {
-      const sel = val === opt.value ? 'selected' : '';
-      html += `<div class="option-card ${sel}" data-action="radio" data-field="${field.id}" data-value="${opt.value}">
-        <div class="option-indicator"></div><div class="option-text">${opt.label}</div></div>`;
+      html += `<option value="${opt.value}"${val === opt.value ? ' selected' : ''}>${opt.label}</option>`;
     }
-    html += '</div>';
+    html += `</select>`;
   } else if (field.type === 'multi') {
     const selected = val || [];
-    const usePills = field.options.length > 4;
-    html += `<div class="options-grid ${usePills ? 'pills' : `cols-${field.cols || 2}`}">`;
+    html += `<div class="options-grid cols-${field.cols || 2}">`;
     for (const opt of field.options) {
       const sel = selected.includes(opt.value) ? 'selected' : '';
       html += `<div class="option-card ${sel}" data-action="multi" data-field="${field.id}" data-value="${opt.value}">
@@ -1397,6 +1390,7 @@ function showSFError(msg) {
 
 // ─── RESULTS ─────────────────────────────────────────────────────────────────
 async function generateResults() {
+  Object.keys(expansionCache).forEach(k => delete expansionCache[k]);
   showLoading('Analyzing opportunity...');
 
   const scored = score(answers);
@@ -1444,6 +1438,7 @@ async function generateResults() {
   renderResults(aiResult);
   showPage('results-page');
   window.scrollTo({ top: 0, behavior: 'smooth' });
+  prefetchExpansions();
 }
 
 function buildAIPrompt(scored, a) {
@@ -1703,26 +1698,14 @@ function renderRadar(dims) {
 }
 
 // ─── EXPAND ACTION ───────────────────────────────────────────────────────────
-async function expandAction(index) {
-  const wrap = document.getElementById(`action-wrap-${index}`);
-  if (!wrap) return;
-  const btn = wrap.querySelector('.expand-btn');
-  const existing = wrap.querySelector('.action-expansion');
+const expansionCache = {};
 
-  // Toggle collapse
-  if (existing) {
-    existing.remove();
-    if (btn) btn.textContent = 'Expand ↓';
-    return;
-  }
-
-  if (btn) { btn.disabled = true; btn.textContent = 'Loading...'; }
-
-  const actionText = wrap.querySelector('.ai-item')?.textContent || '';
+function buildExpansionPrompt(actionText) {
   const a = aiResult?.answers || {};
   const sf = aiResult?.sfRawData || sfRawData;
-
-  const prompt = `A Shopify Field CTO has identified this action for the deal:
+  return {
+    system: 'You are a Shopify Field CTO. Produce concise, specific, actionable advice tailored to the merchant. Respond only with a valid JSON array.',
+    user: `A Shopify Field CTO has identified this action for the deal:
 
 "${actionText}"
 
@@ -1747,14 +1730,63 @@ Include real Shopify resources, case studies, or conversation hooks where releva
 (e.g. if on SFCC, reference SFCC→Shopify migration playbook; if B2B, reference B2B/wholesale case studies;
 if automotive, reference relevant enterprise wins; if global, address multi-market launch approach).
 
-Return JSON array only: [{"idea": "short title", "detail": "2–3 sentence explanation with specifics"}, ...]`;
+Return JSON array only: [{"idea": "short title", "detail": "2–3 sentence explanation with specifics"}, ...]`
+  };
+}
+
+function prefetchExpansions() {
+  const actions = aiResult?.analysis?.actions || [];
+  actions.forEach((actionText, i) => {
+    if (expansionCache[i] !== undefined) return;
+    expansionCache[i] = null; // mark as in-flight
+    const { system, user } = buildExpansionPrompt(actionText);
+    quick.ai.askWithSystem(system, user)
+      .then(raw => {
+        const ideas = JSON.parse(raw.match(/\[[\s\S]*\]/)?.[0] || '[]');
+        expansionCache[i] = ideas;
+      })
+      .catch(() => { expansionCache[i] = undefined; }); // reset on failure so on-demand retry works
+  });
+}
+
+async function expandAction(index) {
+  const wrap = document.getElementById(`action-wrap-${index}`);
+  if (!wrap) return;
+  const btn = wrap.querySelector('.expand-btn');
+  const existing = wrap.querySelector('.action-expansion');
+
+  // Toggle collapse
+  if (existing) {
+    existing.remove();
+    if (btn) btn.textContent = 'Expand ↓';
+    return;
+  }
+
+  // Use pre-fetched cache if ready, otherwise fetch on-demand
+  let ideas = expansionCache[index];
+
+  if (ideas === null) {
+    // Still in-flight — poll briefly then fall back to on-demand
+    if (btn) { btn.disabled = true; btn.textContent = 'Loading...'; }
+    await new Promise(resolve => {
+      let attempts = 0;
+      const poll = setInterval(() => {
+        if (expansionCache[index] !== null || ++attempts > 30) { clearInterval(poll); resolve(); }
+      }, 200);
+    });
+    ideas = expansionCache[index];
+  }
 
   try {
-    const raw = await quick.ai.askWithSystem(
-      'You are a Shopify Field CTO. Produce concise, specific, actionable advice tailored to the merchant. Respond only with a valid JSON array.',
-      prompt
-    );
-    const ideas = JSON.parse(raw.match(/\[[\s\S]*\]/)?.[0] || '[]');
+    if (!ideas) {
+      // Cache miss or poll timed out — fetch now
+      if (btn) { btn.disabled = true; btn.textContent = 'Loading...'; }
+      const actionText = wrap.querySelector('.ai-item')?.textContent || '';
+      const { system, user } = buildExpansionPrompt(actionText);
+      const raw = await quick.ai.askWithSystem(system, user);
+      ideas = JSON.parse(raw.match(/\[[\s\S]*\]/)?.[0] || '[]');
+      expansionCache[index] = ideas;
+    }
 
     const div = document.createElement('div');
     div.className = 'action-expansion';
@@ -2119,6 +2151,11 @@ document.getElementById('modal-overlay').addEventListener('click', function(e) {
 document.addEventListener('input', function(e) {
   const field = e.target.dataset.field;
   if (field) setAnswer(field, e.target.value);
+});
+
+document.addEventListener('change', function(e) {
+  const field = e.target.dataset.field;
+  if (field && e.target.tagName === 'SELECT') setAnswer(field, e.target.value);
 });
 
 // Enter key on SF URL input
